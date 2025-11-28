@@ -196,7 +196,7 @@
 
                             {{-- Input 1: Judul Kerusakan --}}
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Judul Masalah</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Kerusakan</label>
                                 <input type="text" name="kerusakan" required
                                     class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                     placeholder="Contoh: AC Bocor di Ruang Meeting">
