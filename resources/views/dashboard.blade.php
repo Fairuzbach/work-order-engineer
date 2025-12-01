@@ -7,17 +7,24 @@
 
     {{-- WRAPPER UTAMA --}}
     <div class="py-12 relative z-50" x-data="{
+        // --- STATE MODAL ---
         showDetailModal: false,
         showCreateModal: false,
         showConfirmModal: false,
         ticket: null,
     
-        // Data Waktu & Shift
+        // --- WAKTU & SHIFT ---
         currentDate: '',
         currentTime: '',
         currentShift: '',
     
-        // Form Data (Untuk Preview)
+        // --- DATA PLANT & MESIN ---
+        selectedPlant: '',
+        machineOptions: [],
+        isManualInput: false,
+        allPlants: {{ Js::from($plants) }},
+    
+        // --- FORM DATA ---
         form: {
             kerusakan: '',
             kerusakan_detail: '',
@@ -29,10 +36,9 @@
             file_name: ''
         },
     
-        // Fungsi Update Waktu & Shift
+        // --- FUNGSI UPDATE WAKTU ---
         updateTime() {
             const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-    
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
@@ -42,12 +48,7 @@
             const minutes = String(now.getMinutes()).padStart(2, '0');
             this.currentTime = `${hours}:${minutes}`;
     
-            // Logika Shift
             const totalMinutes = (now.getHours() * 60) + now.getMinutes();
-            // Shift 1: 06:45 - 15:15 (405 - 915)
-            // Shift 2: 15:16 - 22:45 (916 - 1365)
-            // Shift 3: 22:46 - 06:44 (Sisa)
-    
             if (totalMinutes >= 405 && totalMinutes <= 915) {
                 this.currentShift = '1';
             } else if (totalMinutes >= 916 && totalMinutes <= 1365) {
@@ -57,20 +58,59 @@
             }
         },
     
+        // --- FUNGSI GANTI PLANT ---
+        onPlantChange() {
+            const plantData = this.allPlants.find(p => p.name === this.selectedPlant);
+    
+            if (plantData && plantData.machines.length > 0) {
+                this.machineOptions = plantData.machines;
+                this.isManualInput = false;
+            } else {
+                this.machineOptions = [];
+                this.isManualInput = true;
+            }
+    
+            this.form.plant = this.selectedPlant;
+            this.form.machine_name = '';
+        },
+    
         handleFile(event) {
             const file = event.target.files[0];
             this.form.file_name = file ? file.name : '';
         },
     
         submitForm() {
-            this.$refs.createForm.submit();
+            if (this.$refs.createForm.reportValidity()) {
+                this.$refs.createForm.submit();
+            } else {
+                this.showConfirmModal = false;
+            }
         },
     
         init() {
             this.updateTime();
             setInterval(() => { this.updateTime(); }, 1000);
+    
+            // Reset saat modal ditutup
+            this.$watch('showCreateModal', (value) => {
+                if (!value) {
+                    this.selectedPlant = '';
+                    this.machineOptions = [];
+                    this.isManualInput = false;
+                    this.form.plant = '';
+                    this.form.machine_name = '';
+                    this.form.kerusakan_detail = '';
+                    this.form.damaged_part = '';
+                    this.form.file_name = '';
+                }
+            });
         }
     }" x-init="init()">
+
+        {{-- AUTO OPEN MODAL IF ERROR --}}
+        @if ($errors->any())
+            <div x-init="showCreateModal = true"></div>
+        @endif
 
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             {{-- ALERT SUKSES --}}
@@ -87,7 +127,8 @@
                 <div
                     class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-blue-500 transition-colors">
                     <div class="text-gray-900 dark:text-gray-100 font-bold text-lg">Total Tiket</div>
-                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $workOrders->total() }}</div>
+                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                        {{ \App\Models\WorkOrder::count() }}</div>
                 </div>
                 <div
                     class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-yellow-500 transition-colors">
@@ -108,18 +149,67 @@
             {{-- TABEL DATA --}}
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg transition-colors">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold">Daftar Laporan Masuk</h3>
-                        <button @click="showCreateModal = true"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition shadow-lg flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4v16m8-8H4"></path>
-                            </svg>
-                            Buat Laporan Baru
-                        </button>
+
+                    {{-- Header Tabel & Search Bar --}}
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+
+                        {{-- SEARCH BAR (DIPERBAIKI) --}}
+                        <div class="w-full md:w-1/3">
+                            <form action="{{ route('dashboard') }}" method="GET" class="relative flex items-center">
+
+                                {{-- Input Search --}}
+                                <div class="relative w-full">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
+                                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                                stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                                        </svg>
+                                    </div>
+                                    <input type="text" name="search" value="{{ request('search') }}"
+                                        class="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                        placeholder="Cari Tiket, Plant, atau Mesin...">
+
+                                    {{-- Tombol Reset (X) jika ada search --}}
+                                    @if (request('search'))
+                                        <a href="{{ route('dashboard') }}"
+                                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-red-500 transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </a>
+                                    @endif
+                                </div>
+
+                                {{-- Tombol Cari (Submit) --}}
+                                <button type="submit"
+                                    class="p-2.5 ml-2 text-sm font-medium text-white bg-blue-700 rounded-lg border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                                    <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+                                        fill="none" viewBox="0 0 20 20">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                            stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                                    </svg>
+                                    <span class="sr-only">Search</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        {{-- TOMBOL BUAT TIKET --}}
+                        <div class="w-full md:w-auto flex justify-end">
+                            <button @click="showCreateModal = true"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg text-sm transition shadow-lg flex items-center gap-2 w-full md:w-auto justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Buat Laporan Baru
+                            </button>
+                        </div>
                     </div>
 
+                    {{-- TABEL --}}
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700">
@@ -198,8 +288,50 @@
                                 @empty
                                     <tr>
                                         <td colspan="5"
-                                            class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Belum ada
-                                            laporan masuk.</td>
+                                            class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+
+                                            {{-- LOGIKA PESAN KOSONG --}}
+                                            <div class="flex flex-col items-center justify-center">
+                                                @if (request('search'))
+                                                    {{-- KASUS 1: Pencarian 'asd' tidak ditemukan --}}
+                                                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-full mb-3">
+                                                        <svg class="w-10 h-10 text-gray-400" fill="none"
+                                                            stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                                            </path>
+                                                        </svg>
+                                                    </div>
+                                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Data
+                                                        Tidak Ditemukan</h3>
+                                                    <p class="mt-1 text-sm">Tidak ada laporan yang cocok dengan kata
+                                                        kunci "<strong>{{ request('search') }}</strong>".</p>
+                                                    <a href="{{ route('dashboard') }}"
+                                                        class="mt-3 text-blue-600 hover:underline text-sm">Reset
+                                                        Pencarian</a>
+                                                @else
+                                                    {{-- KASUS 2: Data memang kosong (belum ada tiket) atau belum mencari --}}
+                                                    {{-- Logika ini bergantung pada controller: jika controller return empty saat no search, ini akan muncul --}}
+                                                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-full mb-3">
+                                                        <svg class="w-10 h-10 text-blue-500 dark:text-blue-400"
+                                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Mulai
+                                                        Pencarian</h3>
+                                                    <p class="mt-1 text-sm max-w-xs mx-auto">
+                                                        Silakan ketik <strong>Nomor Tiket</strong>, <strong>Nama
+                                                            Plant</strong>, atau <strong>Mesin</strong> pada kolom
+                                                        pencarian di atas dan tekan Enter.
+                                                    </p>
+                                                @endif
+                                            </div>
+
+                                        </td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -210,11 +342,7 @@
             </div>
         </div>
 
-        {{-- 
-            =============================================
-            MODAL 1: CREATE TICKET
-            =============================================
-        --}}
+        {{-- MODAL 1: CREATE TICKET --}}
         <div x-show="showCreateModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div x-show="showCreateModal" x-transition.opacity
@@ -230,7 +358,8 @@
                     <div
                         class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-4 sm:px-6 flex justify-between items-center">
                         <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                                 </path>
@@ -285,47 +414,15 @@
                                 </div>
                             </div>
 
-                            {{-- 
-                                LOGIC PLANT & MESIN (DIRAPIKAN)
-                                Menggunakan x-data terpisah untuk local scope agar variable tidak bentrok
-                            --}}
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-data="{
-                                selectedPlant: '',
-                                machineOptions: [],
-                                isManualInput: false,
-                                allPlants: {{ Js::from($plants) }},
-                            
-                                init() {
-                                    // Reset saat modal dibuka
-                                    this.$watch('$parent.showCreateModal', (value) => {
-                                        if (!value) {
-                                            this.selectedPlant = '';
-                                            this.machineOptions = [];
-                                            this.isManualInput = false;
-                                        }
-                                    });
-                                },
-                            
-                                onPlantChange() {
-                                    const plantData = this.allPlants.find(p => p.name === this.selectedPlant);
-                                    if (plantData && plantData.machines.length > 0) {
-                                        this.machineOptions = plantData.machines;
-                                        this.isManualInput = false;
-                                    } else {
-                                        this.machineOptions = [];
-                                        this.isManualInput = true; // Default manual jika tidak ada mesin atau plant kosong
-                                    }
-                                    // Update nilai form utama
-                                    this.$data.form.plant = this.selectedPlant;
-                                    this.$data.form.machine_name = ''; // Reset mesin
-                                }
-                            }">
-
+                            {{-- LOGIC PLANT & MESIN (SUDAH DIGABUNG KE ROOT SCOPE) --}}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Plant</label>
+                                    {{-- x-model langsung ke variable di root scope --}}
                                     <select name="plant" x-model="selectedPlant" @change="onPlantChange()"
-                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        required>
                                         <option value="">Pilih Plant</option>
                                         <template x-for="plant in allPlants" :key="plant.id">
                                             <option :value="plant.name" x-text="plant.name"></option>
@@ -340,21 +437,19 @@
                                             class="text-xs text-blue-500 ml-1">(Input Manual)</span>
                                     </label>
 
-                                    {{-- DROPDOWN (Tampil jika tidak manual) --}}
                                     <select x-show="!isManualInput" x-model="form.machine_name" name="machine_name"
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                        :disabled="isManualInput">
+                                        :disabled="isManualInput" :required="!isManualInput">
                                         <option value="">Pilih Mesin...</option>
                                         <template x-for="mesin in machineOptions" :key="mesin.id">
                                             <option :value="mesin.name" x-text="mesin.name"></option>
                                         </template>
                                     </select>
 
-                                    {{-- TEXT INPUT (Tampil jika manual atau plant belum dipilih) --}}
                                     <input x-show="isManualInput" type="text" x-model="form.machine_name"
                                         name="machine_name" placeholder="Ketik nama mesin..."
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                        :disabled="!isManualInput">
+                                        :disabled="!isManualInput" :required="isManualInput">
                                 </div>
                             </div>
 
@@ -366,7 +461,8 @@
                                         Mesin Rusak</label>
                                     <input type="text" name="damaged_part" x-model="form.damaged_part"
                                         placeholder="Contoh: Take Up, dll"
-                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500">
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"
+                                        required>
                                     <input type="hidden" name="kerusakan" x-bind:value="form.damaged_part">
                                 </div>
                                 <div>
@@ -374,7 +470,8 @@
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Keterangan
                                         Produksi</label>
                                     <select name="production_status" x-model="form.production_status"
-                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500">
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"
+                                        required>
                                         <option value="">Pilih Keterangan...</option>
                                         <option value="Stop">Stop (Mogok)</option>
                                         <option value="Running">Running (Jalan)</option>
@@ -400,7 +497,8 @@
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Uraian
                                         Kerusakan</label>
                                     <textarea name="kerusakan_detail" x-model="form.kerusakan_detail" rows="1" placeholder="Jelaskan..."
-                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"></textarea>
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"
+                                        required></textarea>
                                 </div>
                             </div>
 
@@ -415,6 +513,7 @@
 
                         <div
                             class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse items-center gap-3 rounded-b-lg">
+                            {{-- BUTTON PREVIEW --}}
                             <button type="button" @click="showConfirmModal = true"
                                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:w-auto sm:text-sm transition-colors">Lihat
                                 & Kirim</button>
@@ -493,7 +592,7 @@
             </div>
         </div>
 
-        {{-- MODAL DETAIL (SAMA SEPERTI SEBELUMNYA) --}}
+        {{-- MODAL DETAIL --}}
         <div x-show="showDetailModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div x-show="showDetailModal" x-transition.opacity
