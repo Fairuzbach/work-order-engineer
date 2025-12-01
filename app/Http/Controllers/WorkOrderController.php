@@ -8,9 +8,9 @@ use Illuminate\Support\Str;
 
 class WorkOrderController extends Controller
 {
+    // --- FUNGSI SIMPAN BARU (STORE) ---
     public function store(Request $request)
     {
-        // 1. Validasi Data
         $request->validate([
             'report_date' => 'required|date',
             'report_time' => 'required',
@@ -21,41 +21,63 @@ class WorkOrderController extends Controller
             'production_status' => 'required|string',
             'kerusakan_detail' => 'required|string',
             'priority' => 'nullable',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // Max 5MB
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
         ]);
 
-        // 2. Handle Upload Foto
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $photoPath = $request->file('photo')->store('work_orders', 'public');
         }
 
-        // 3. Simpan ke Database
         WorkOrder::create([
-            // Data Pelapor & Tiket
             'requester_id' => auth()->id(),
             'ticket_num' => 'WO-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
-
-            // Data Waktu & Lokasi
             'report_date' => $request->report_date,
             'report_time' => $request->report_time,
             'shift' => $request->shift,
             'plant' => $request->plant,
             'machine_name' => $request->machine_name,
-
-            // Data Kerusakan
             'damaged_part' => $request->damaged_part,
             'production_status' => $request->production_status,
-            'kerusakan' => $request->damaged_part, // Judul disamakan dengan bagian rusak
+            'kerusakan' => $request->damaged_part,
             'kerusakan_detail' => $request->kerusakan_detail,
-
-            // Data Tambahan
             'priority' => $request->priority ?? 'medium',
             'work_status' => 'pending',
             'photo_path' => $photoPath,
         ]);
 
-        // 4. Redirect kembali ke Dashboard
-        return redirect()->route('dashboard')->with('success', 'Laporan berhasil dibuat! Teknisi akan segera meninjau.');
+        return redirect()->route('dashboard')->with('success', 'Laporan berhasil dibuat!');
+    }
+
+    // --- FUNGSI UPDATE STATUS (EDIT) ---
+    // Tambahkan fungsi ini di bawah fungsi store
+    public function update(Request $request, WorkOrder $workOrder)
+    {
+        // 1. Validasi Input Edit
+        $request->validate([
+            'work_status' => 'required|in:pending,in_progress,completed,cancelled',
+            'finished_date' => 'nullable|date',
+            'start_time' => 'nullable',
+            'end_time' => 'nullable',
+            'technician' => 'nullable|string|max:255',
+            'maintenance_note' => 'nullable|string',
+            'repair_solution' => 'nullable|string',
+            'sparepart' => 'nullable|string',
+        ]);
+
+        // 2. Update Data ke Database
+        $workOrder->update([
+            'work_status' => $request->work_status,
+            'finished_date' => $request->finished_date,
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
+            'technician' => $request->technician, // Nama Teknisi
+            'maintenance_note' => $request->maintenance_note,
+            'repair_solution' => $request->repair_solution, // Uraian Perbaikan
+            'sparepart' => $request->sparepart,
+        ]);
+
+        // 3. Kembali ke Dashboard
+        return redirect()->route('dashboard')->with('success', 'Status laporan #' . $workOrder->ticket_num . ' berhasil diperbarui!');
     }
 }

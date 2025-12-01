@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Concerns\HasUuids; // 1. Wajib untuk UUID
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Support\Str;
 
 class WorkOrder extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory;
 
     protected $fillable = [
         'requester_id',
@@ -25,11 +25,22 @@ class WorkOrder extends Model
         'kerusakan_detail',
         'priority',
         'work_status',
-        'photo_path'
+        'photo_path',
+
+        //edited data
+        'work_status',
+        'finished_date',
+        'start_time',
+        'end_time',
+        'technician',
+        'maintenance_note',
+        'repair_solution',
+        'sparepart'
     ];
 
     protected $casts = [
         'report_date' => 'date',
+        'finished_date' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];

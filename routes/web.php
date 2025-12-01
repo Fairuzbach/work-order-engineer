@@ -21,20 +21,15 @@ Route::get('/', function () {
     return view('welcome', compact('workOrders', 'stats'));
 });
 
-Route::get('/dashboard', function () {
-    $plants = Plant::with('machines')->get();
-
-    $workOrders = WorkOrder::with('requester')->latest()->paginate(10);
-
-    return view('dashboard', compact('plants', 'workOrders'));
-})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
-    // Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
+    // Route Update (PUT)
+    Route::put('/work-orders/{workOrder}', [WorkOrderController::class, 'update'])->name('work-orders.update');
 });
 
 require __DIR__ . '/auth.php';

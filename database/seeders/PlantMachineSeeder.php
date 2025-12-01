@@ -20,11 +20,11 @@ class PlantMachineSeeder extends Seeder
         // DATA DARI ANDA
         $data = [
             'plants' => [
-                'A',
-                'B',
-                'C',
-                'D',
-                'E',
+                'Plant A',
+                'Plant B',
+                'Plant C',
+                'Plant D',
+                'Plant E',
                 'SS',
                 'SC',
                 'PE',
@@ -36,7 +36,7 @@ class PlantMachineSeeder extends Seeder
                 'QR'
             ],
             'mesins' => [
-                'A' => [
+                'Plant A' => [
                     'HD-10C',
                     'TW-RBD-CU',
                     'MD-1',
@@ -100,7 +100,7 @@ class PlantMachineSeeder extends Seeder
                     'Heli 5 Ton',
                     'Heli 1,8 Ton',
                 ],
-                'B' => [
+                'Plant B' => [
                     'RBD-AL',
                     'HD-10A',
                     'HD-8C',
@@ -138,7 +138,7 @@ class PlantMachineSeeder extends Seeder
                     'Nissan 3,5 Ton',
                     'Heli 3,5 Ton',
                 ],
-                'C' => [
+                'Plant C' => [
                     'MD-2C',
                     'MD-3C',
                     'TW-MD',
@@ -218,7 +218,7 @@ class PlantMachineSeeder extends Seeder
                     'Heli 2,5 Ton',
                     'Heli 3,5 Ton',
                 ],
-                'D' => [
+                'Plant D' => [
                     'CCV-JHON ROYLE',
                     'CCV-PAMPASS',
                     'CCV-SUMITOMO',
@@ -244,7 +244,7 @@ class PlantMachineSeeder extends Seeder
                     'Heli 10 Ton',
                     'Heli 2,5 Ton',
                 ],
-                'E' => [
+                'Plant E' => [
                     'COL-4A',
                     'COL-4B',
                     'COL-9F',

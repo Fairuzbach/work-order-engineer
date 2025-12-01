@@ -5,26 +5,27 @@
         </h2>
     </x-slot>
 
-    {{-- WRAPPER UTAMA --}}
     <div class="py-12 relative z-50" x-data="{
-        // --- STATE MODAL ---
+        // --- 1. MODAL STATES ---
         showDetailModal: false,
         showCreateModal: false,
         showConfirmModal: false,
-        ticket: null,
+        showEditModal: false,
     
-        // --- WAKTU & SHIFT ---
+        // --- 2. DATA HOLDER ---
+        ticket: null, // Untuk menampung data tiket yang sedang dilihat/diedit
+        allPlants: {{ Js::from($plants) }},
+        allTechnicians: {{ Js::from($technicians) }},
+    
+        // --- 3. REALTIME CLOCK ---
         currentDate: '',
         currentTime: '',
         currentShift: '',
     
-        // --- DATA PLANT & MESIN ---
+        // --- 4. FORM CREATE ---
         selectedPlant: '',
         machineOptions: [],
         isManualInput: false,
-        allPlants: {{ Js::from($plants) }},
-    
-        // --- FORM DATA ---
         form: {
             kerusakan: '',
             kerusakan_detail: '',
@@ -36,9 +37,28 @@
             file_name: ''
         },
     
-        // --- FUNGSI UPDATE WAKTU ---
+        // --- 5. FORM EDIT ---
+        editForm: {
+            id: '',
+            ticket_num: '',
+            work_status: '',
+            finished_date: '',
+            start_time: '',
+            end_time: '',
+            selectedTechnicians: [],
+            technician_string: '',
+            production_note: '',
+            maintenance_note: '',
+            repair_solution: '',
+            sparepart: ''
+        },
+    
+        // ================= FUNCTIONS =================
+    
+        // Update Waktu & Shift Otomatis
         updateTime() {
             const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
@@ -49,6 +69,8 @@
             this.currentTime = `${hours}:${minutes}`;
     
             const totalMinutes = (now.getHours() * 60) + now.getMinutes();
+    
+            //Shift Time
             if (totalMinutes >= 405 && totalMinutes <= 915) {
                 this.currentShift = '1';
             } else if (totalMinutes >= 916 && totalMinutes <= 1365) {
@@ -58,7 +80,7 @@
             }
         },
     
-        // --- FUNGSI GANTI PLANT ---
+        // Logic Ganti Plant (Create Form)
         onPlantChange() {
             const plantData = this.allPlants.find(p => p.name === this.selectedPlant);
     
@@ -74,11 +96,13 @@
             this.form.machine_name = '';
         },
     
+        // Logic File Upload (Create Form)
         handleFile(event) {
             const file = event.target.files[0];
             this.form.file_name = file ? file.name : '';
         },
     
+        // Logic Submit Create
         submitForm() {
             if (this.$refs.createForm.reportValidity()) {
                 this.$refs.createForm.submit();
@@ -87,11 +111,59 @@
             }
         },
     
+        // Logic Buka Modal Edit
+        openEditModal(data) {
+            this.ticket = data;
+            this.editForm.id = data.id;
+            this.editForm.ticket_num = data.ticket_num;
+            this.editForm.work_status = data.work_status;
+            this.editForm.production_note = data.production_status;
+    
+            // Reset field edit
+            this.editForm.finished_date = data.finished_date || '';
+            this.editForm.start_time = data.start_time || '';
+            this.editForm.end_time = data.end_time || '';
+            this.editForm.maintenance_note = data.maintenance_note || '';
+            this.editForm.repair_solution = data.repair_solution || '';
+            this.editForm.sparepart = data.sparepart || '';
+    
+            // Parse Teknisi
+            this.editForm.selectedTechnicians = [];
+            if (data.technician) {
+                this.editForm.selectedTechnicians = data.technician.split(', ').filter(Boolean);
+                this.editForm.technician_string = data.technician;
+            } else {
+                this.editForm.technician_string = '';
+            }
+    
+            this.showEditModal = true;
+        },
+    
+        // Logic Tambah Teknisi (Edit Form)
+        addTechnician(techName) {
+            if (!techName) return;
+            if (this.editForm.selectedTechnicians.length >= 5) {
+                alert('Maksimal 5 teknisi!');
+                return;
+            }
+            if (!this.editForm.selectedTechnicians.includes(techName)) {
+                this.editForm.selectedTechnicians.push(techName);
+            }
+            this.editForm.technician_string = this.editForm.selectedTechnicians.join(', ');
+        },
+    
+        // Logic Hapus Teknisi (Edit Form)
+        removeTechnician(index) {
+            this.editForm.selectedTechnicians.splice(index, 1);
+            this.editForm.technician_string = this.editForm.selectedTechnicians.join(', ');
+        },
+    
+        // Init Script
         init() {
             this.updateTime();
             setInterval(() => { this.updateTime(); }, 1000);
     
-            // Reset saat modal ditutup
+            // Reset Create Form saat modal ditutup
             this.$watch('showCreateModal', (value) => {
                 if (!value) {
                     this.selectedPlant = '';
@@ -107,13 +179,14 @@
         }
     }" x-init="init()">
 
-        {{-- AUTO OPEN MODAL IF ERROR --}}
+        {{-- Auto Open Modal jika ada error validasi Laravel --}}
         @if ($errors->any())
             <div x-init="showCreateModal = true"></div>
         @endif
 
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            {{-- ALERT SUKSES --}}
+
+            {{-- A. ALERT SUCCESS --}}
             @if (session('success'))
                 <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
                     role="alert">
@@ -122,13 +195,12 @@
                 </div>
             @endif
 
-            {{-- STATISTIK --}}
+            {{-- B. STATISTIK CARDS --}}
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div
                     class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-blue-500 transition-colors">
                     <div class="text-gray-900 dark:text-gray-100 font-bold text-lg">Total Tiket</div>
-                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                        {{ \App\Models\WorkOrder::count() }}</div>
+                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $workOrders->total() }}</div>
                 </div>
                 <div
                     class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-yellow-500 transition-colors">
@@ -146,18 +218,15 @@
                 </div>
             </div>
 
-            {{-- TABEL DATA --}}
+            {{-- C. TABEL DATA --}}
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg transition-colors">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
 
-                    {{-- Header Tabel & Search Bar --}}
+                    {{-- Header Tabel & Search --}}
                     <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-
-                        {{-- SEARCH BAR (DIPERBAIKI) --}}
+                        {{-- Search Bar --}}
                         <div class="w-full md:w-1/3">
                             <form action="{{ route('dashboard') }}" method="GET" class="relative flex items-center">
-
-                                {{-- Input Search --}}
                                 <div class="relative w-full">
                                     <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                         <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
@@ -169,8 +238,6 @@
                                     <input type="text" name="search" value="{{ request('search') }}"
                                         class="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                         placeholder="Cari Tiket, Plant, atau Mesin...">
-
-                                    {{-- Tombol Reset (X) jika ada search --}}
                                     @if (request('search'))
                                         <a href="{{ route('dashboard') }}"
                                             class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-red-500 transition">
@@ -182,8 +249,6 @@
                                         </a>
                                     @endif
                                 </div>
-
-                                {{-- Tombol Cari (Submit) --}}
                                 <button type="submit"
                                     class="p-2.5 ml-2 text-sm font-medium text-white bg-blue-700 rounded-lg border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                                     <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
@@ -196,7 +261,7 @@
                             </form>
                         </div>
 
-                        {{-- TOMBOL BUAT TIKET --}}
+                        {{-- Tombol Buat Laporan --}}
                         <div class="w-full md:w-auto flex justify-end">
                             <button @click="showCreateModal = true"
                                 class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg text-sm transition shadow-lg flex items-center gap-2 w-full md:w-auto justify-center">
@@ -209,7 +274,7 @@
                         </div>
                     </div>
 
-                    {{-- TABEL --}}
+                    {{-- Tabel --}}
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700">
@@ -280,8 +345,10 @@
                                                 Detail
                                             </button>
                                             @if (auth()->user()->role === 'admin')
-                                                <a href="#"
-                                                    class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-bold">Edit</a>
+                                                <button @click="openEditModal({{ $wo->toJson() }})"
+                                                    class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-bold">
+                                                    Edit
+                                                </button>
                                             @endif
                                         </td>
                                     </tr>
@@ -289,11 +356,8 @@
                                     <tr>
                                         <td colspan="5"
                                             class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-
-                                            {{-- LOGIKA PESAN KOSONG --}}
                                             <div class="flex flex-col items-center justify-center">
                                                 @if (request('search'))
-                                                    {{-- KASUS 1: Pencarian 'asd' tidak ditemukan --}}
                                                     <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-full mb-3">
                                                         <svg class="w-10 h-10 text-gray-400" fill="none"
                                                             stroke="currentColor" viewBox="0 0 24 24">
@@ -311,8 +375,6 @@
                                                         class="mt-3 text-blue-600 hover:underline text-sm">Reset
                                                         Pencarian</a>
                                                 @else
-                                                    {{-- KASUS 2: Data memang kosong (belum ada tiket) atau belum mencari --}}
-                                                    {{-- Logika ini bergantung pada controller: jika controller return empty saat no search, ini akan muncul --}}
                                                     <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-full mb-3">
                                                         <svg class="w-10 h-10 text-blue-500 dark:text-blue-400"
                                                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -323,14 +385,13 @@
                                                     </div>
                                                     <h3 class="text-lg font-medium text-gray-900 dark:text-white">Mulai
                                                         Pencarian</h3>
-                                                    <p class="mt-1 text-sm max-w-xs mx-auto">
-                                                        Silakan ketik <strong>Nomor Tiket</strong>, <strong>Nama
-                                                            Plant</strong>, atau <strong>Mesin</strong> pada kolom
-                                                        pencarian di atas dan tekan Enter.
+                                                    <p class="mt-1 text-sm max-w-xs mx-auto">Silakan ketik
+                                                        <strong>Nomor Tiket</strong>, <strong>Nama Plant</strong>, atau
+                                                        <strong>Mesin</strong> pada kolom pencarian di atas dan tekan
+                                                        Enter.
                                                     </p>
                                                 @endif
                                             </div>
-
                                         </td>
                                     </tr>
                                 @endforelse
@@ -342,7 +403,9 @@
             </div>
         </div>
 
+        {{-- ========================================================= --}}
         {{-- MODAL 1: CREATE TICKET --}}
+        {{-- ========================================================= --}}
         <div x-show="showCreateModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div x-show="showCreateModal" x-transition.opacity
@@ -381,45 +444,40 @@
 
                             {{-- Row 1: Waktu --}}
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label
+                                <div><label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tanggal
-                                        Lapor</label>
-                                    <input type="date" name="report_date" x-model="currentDate" readonly
+                                        Lapor</label><input type="date" name="report_date" x-model="currentDate"
+                                        readonly
                                         class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 shadow-sm cursor-not-allowed font-bold">
                                 </div>
-                                <div>
-                                    <label
+                                <div><label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Jam
-                                        Lapor (WIB)</label>
-                                    <input type="time" name="report_time" x-model="currentTime" readonly
+                                        Lapor (WIB)</label><input type="time" name="report_time"
+                                        x-model="currentTime" readonly
                                         class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 shadow-sm cursor-not-allowed font-bold">
                                 </div>
                             </div>
 
                             {{-- Row 2: Shift & Pelapor --}}
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label
-                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Shift</label>
-                                    <input type="text" name="shift" x-model="currentShift" readonly
+                                <div><label
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Shift</label><input
+                                        type="text" name="shift" x-model="currentShift" readonly
                                         class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 shadow-sm cursor-not-allowed font-bold text-center">
                                 </div>
-                                <div>
-                                    <label
+                                <div><label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Nama
-                                        Pelapor</label>
-                                    <input type="text" value="{{ auth()->user()->name }}" readonly
+                                        Pelapor</label><input type="text" value="{{ auth()->user()->name }}"
+                                        readonly
                                         class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-500 dark:border-gray-600 dark:bg-gray-600 dark:text-gray-300 shadow-sm cursor-not-allowed">
                                 </div>
                             </div>
 
-                            {{-- LOGIC PLANT & MESIN (SUDAH DIGABUNG KE ROOT SCOPE) --}}
+                            {{-- Row 3: Plant & Mesin (Dynamic) --}}
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Plant</label>
-                                    {{-- x-model langsung ke variable di root scope --}}
                                     <select name="plant" x-model="selectedPlant" @change="onPlantChange()"
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                         required>
@@ -429,14 +487,11 @@
                                         </template>
                                     </select>
                                 </div>
-
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                                        Nama Mesin / Forklift
-                                        <span x-show="isManualInput && selectedPlant"
+                                        Nama Mesin / Forklift <span x-show="isManualInput && selectedPlant"
                                             class="text-xs text-blue-500 ml-1">(Input Manual)</span>
                                     </label>
-
                                     <select x-show="!isManualInput" x-model="form.machine_name" name="machine_name"
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                         :disabled="isManualInput" :required="!isManualInput">
@@ -445,7 +500,6 @@
                                             <option :value="mesin.name" x-text="mesin.name"></option>
                                         </template>
                                     </select>
-
                                     <input x-show="isManualInput" type="text" x-model="form.machine_name"
                                         name="machine_name" placeholder="Ketik nama mesin..."
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
@@ -466,15 +520,20 @@
                                     <input type="hidden" name="kerusakan" x-bind:value="form.damaged_part">
                                 </div>
                                 <div>
-                                    <label
-                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Keterangan
-                                        Produksi</label>
+                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                        Keterangan Produksi
+                                    </label>
                                     <select name="production_status" x-model="form.production_status"
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"
                                         required>
                                         <option value="">Pilih Keterangan...</option>
-                                        <option value="Stop">Stop (Mogok)</option>
-                                        <option value="Running">Running (Jalan)</option>
+
+                                        {{-- Loop data dari Database --}}
+                                        @foreach ($productionStatuses as $status)
+                                            <option value="{{ $status->name }}">
+                                                {{ $status->code }} - {{ $status->name }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                 </div>
                             </div>
@@ -513,7 +572,6 @@
 
                         <div
                             class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse items-center gap-3 rounded-b-lg">
-                            {{-- BUTTON PREVIEW --}}
                             <button type="button" @click="showConfirmModal = true"
                                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:w-auto sm:text-sm transition-colors">Lihat
                                 & Kirim</button>
@@ -530,7 +588,9 @@
             </div>
         </div>
 
-        {{-- MODAL 3: PREVIEW --}}
+        {{-- ========================================================= --}}
+        {{-- MODAL 2: PREVIEW / CONFIRMATION --}}
+        {{-- ========================================================= --}}
         <div x-show="showConfirmModal" style="display: none;" class="fixed inset-0 z-[60] overflow-y-auto"
             aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div x-show="showConfirmModal" x-transition.opacity
@@ -592,7 +652,9 @@
             </div>
         </div>
 
-        {{-- MODAL DETAIL --}}
+        {{-- ========================================================= --}}
+        {{-- MODAL 3: DETAIL TICKET --}}
+        {{-- ========================================================= --}}
         <div x-show="showDetailModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div x-show="showDetailModal" x-transition.opacity
@@ -666,6 +728,11 @@
                                         <p class="text-sm font-medium text-gray-900 dark:text-white"
                                             x-text="ticket.production_status"></p>
                                     </div>
+                                    <div><span
+                                            class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Teknisi</span>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white"
+                                            x-text="ticket.technician ?? '-'"></p>
+                                    </div>
                                 </div>
                                 <div
                                     class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-100 dark:border-gray-600">
@@ -693,6 +760,141 @@
                             type="button"
                             class="inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-500 sm:ml-3 sm:w-auto"
                             @click="showDetailModal = false">Tutup</button></div>
+                </div>
+            </div>
+        </div>
+
+        {{-- ========================================================= --}}
+        {{-- MODAL 4: EDIT TICKET (UPDATE STATUS) --}}
+        {{-- ========================================================= --}}
+        <div x-show="showEditModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
+            aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div x-show="showEditModal" x-transition.opacity
+                class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" @click="showEditModal = false">
+            </div>
+
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <div x-show="showEditModal" x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                    class="relative transform overflow-hidden rounded-lg bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl border border-gray-700">
+
+                    <div class="bg-gray-800 px-4 py-4 sm:px-6 border-b border-gray-700">
+                        <h3 class="text-lg font-bold text-white"
+                            x-text="'Update Status Laporan #' + (ticket ? ticket.ticket_num : '')"></h3>
+                    </div>
+
+                    <form :action="'/work-orders/' + editForm.id" method="POST">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="px-6 py-6 space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Status</label>
+                                    <select name="work_status" x-model="editForm.work_status"
+                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="pending">Pending</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Tanggal Selesai</label>
+                                    <div class="relative">
+                                        <input type="date" name="finished_date" x-model="editForm.finished_date"
+                                            class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500 pl-3">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Waktu Mulai
+                                        Perbaikan</label>
+                                    <input type="time" name="start_time" x-model="editForm.start_time"
+                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Waktu Selesai
+                                        Perbaikan</label>
+                                    <input type="time" name="end_time" x-model="editForm.end_time"
+                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
+                                </div>
+                            </div>
+
+                            {{-- TEKNISI MULTI-SELECT --}}
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-400">Nama Teknisi (Maks. 5)</label>
+
+                                <select @change="addTechnician($event.target.value); $event.target.value = ''"
+                                    class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="">Pilih Teknisi...</option>
+                                    <template x-for="tech in allTechnicians" :key="tech.id">
+                                        <option :value="tech.name" x-text="tech.name"></option>
+                                    </template>
+                                </select>
+
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    <template x-for="(tech, index) in editForm.selectedTechnicians"
+                                        :key="index">
+                                        <span
+                                            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-900 text-blue-200 border border-blue-700">
+                                            <span x-text="tech"></span>
+                                            <button type="button" @click="removeTechnician(index)"
+                                                class="ml-2 text-blue-300 hover:text-white focus:outline-none">&times;</button>
+                                        </span>
+                                    </template>
+                                </div>
+                                <input type="hidden" name="technician" x-model="editForm.technician_string">
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Keterangan
+                                        Produksi</label>
+                                    <input type="text" x-model="editForm.production_note"
+                                        class="w-full rounded-md bg-gray-800 border-gray-700 text-gray-400 cursor-not-allowed"
+                                        readonly>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Keterangan
+                                        Maintenance</label>
+                                    <select name="maintenance_note" x-model="editForm.maintenance_note"
+                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="">Pilih Keterangan...</option>
+                                        @foreach ($maintenanceStatuses as $ms)
+                                            <option value="{{ $ms->name }}">{{ $ms->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Uraian
+                                        Perbaikan</label>
+                                    <textarea name="repair_solution" x-model="editForm.repair_solution" rows="3"
+                                        placeholder="Jelaskan detail perbaikan..."
+                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Sparepart</label>
+                                    <textarea name="sparepart" x-model="editForm.sparepart" rows="3"
+                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-800 px-6 py-4 sm:flex sm:flex-row-reverse border-t border-gray-700 gap-3">
+                            <button type="submit"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">Simpan
+                                Perubahan</button>
+                            <button type="button" @click="showEditModal = false"
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-600 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Batal</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
