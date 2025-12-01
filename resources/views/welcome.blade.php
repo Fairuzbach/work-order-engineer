@@ -35,7 +35,7 @@
             }
         }
     }">
-
+    <x-loading-screen />
     {{-- NAVBAR --}}
     <nav x-data="{ mobileMenuOpen: false, profileOpen: false }"
         class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 transition-colors duration-300 shadow-sm">
