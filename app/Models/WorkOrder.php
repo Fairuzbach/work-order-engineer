@@ -10,18 +10,26 @@ use Illuminate\Support\Str;
 class WorkOrder extends Model
 {
     use HasFactory, HasUuids;
-    protected $table = 'work_order';
 
     protected $fillable = [
         'requester_id',
         'ticket_num',
+        'report_date',
+        'report_time',
+        'shift',
+        'plant',
+        'machine_name',
+        'damaged_part',
+        'production_status',
         'kerusakan',
         'kerusakan_detail',
         'priority',
         'work_status',
+        'photo_path'
     ];
 
     protected $casts = [
+        'report_date' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];

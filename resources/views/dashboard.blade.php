@@ -1,20 +1,79 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight relative z-10">
             {{ __('Dashboard') }}
         </h2>
     </x-slot>
 
-    {{-- 
-        STATE MANAGEMENT (Alpine.js):
-        - showDetailModal: Untuk melihat detail tiket
-        - showCreateModal: Untuk form buat tiket baru (INI YANG BARU)
-        - ticket: Data tiket yang sedang dilihat
-    --}}
-    <div class="py-12" x-data="{ showDetailModal: false, showCreateModal: false, ticket: null }">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    {{-- WRAPPER UTAMA --}}
+    <div class="py-12 relative z-50" x-data="{
+        showDetailModal: false,
+        showCreateModal: false,
+        showConfirmModal: false,
+        ticket: null,
+    
+        // Data Waktu & Shift
+        currentDate: '',
+        currentTime: '',
+        currentShift: '',
+    
+        // Form Data (Untuk Preview)
+        form: {
+            kerusakan: '',
+            kerusakan_detail: '',
+            priority: 'medium',
+            plant: '',
+            machine_name: '',
+            damaged_part: '',
+            production_status: '',
+            file_name: ''
+        },
+    
+        // Fungsi Update Waktu & Shift
+        updateTime() {
+            const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            this.currentDate = `${year}-${month}-${day}`;
+    
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            this.currentTime = `${hours}:${minutes}`;
+    
+            // Logika Shift
+            const totalMinutes = (now.getHours() * 60) + now.getMinutes();
+            // Shift 1: 06:45 - 15:15 (405 - 915)
+            // Shift 2: 15:16 - 22:45 (916 - 1365)
+            // Shift 3: 22:46 - 06:44 (Sisa)
+    
+            if (totalMinutes >= 405 && totalMinutes <= 915) {
+                this.currentShift = '1';
+            } else if (totalMinutes >= 916 && totalMinutes <= 1365) {
+                this.currentShift = '2';
+            } else {
+                this.currentShift = '3';
+            }
+        },
+    
+        handleFile(event) {
+            const file = event.target.files[0];
+            this.form.file_name = file ? file.name : '';
+        },
+    
+        submitForm() {
+            this.$refs.createForm.submit();
+        },
+    
+        init() {
+            this.updateTime();
+            setInterval(() => { this.updateTime(); }, 1000);
+        }
+    }" x-init="init()">
 
-            {{-- ALERT SUKSES (Muncul jika ada pesan dari controller) --}}
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            {{-- ALERT SUKSES --}}
             @if (session('success'))
                 <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
                     role="alert">
@@ -23,34 +82,34 @@
                 </div>
             @endif
 
-            {{-- Bagian Statistik --}}
+            {{-- STATISTIK --}}
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-blue-500">
-                    <div class="text-gray-900 font-bold text-lg">Total Tiket</div>
-                    <div class="text-3xl font-bold text-blue-600">{{ $workOrders->total() }}</div>
+                <div
+                    class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-blue-500 transition-colors">
+                    <div class="text-gray-900 dark:text-gray-100 font-bold text-lg">Total Tiket</div>
+                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $workOrders->total() }}</div>
                 </div>
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-yellow-500">
-                    <div class="text-gray-900 font-bold text-lg">Perlu Dikerjakan</div>
-                    <div class="text-3xl font-bold text-yellow-600">
+                <div
+                    class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-yellow-500 transition-colors">
+                    <div class="text-gray-900 dark:text-gray-100 font-bold text-lg">Perlu Dikerjakan</div>
+                    <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
                         {{ \App\Models\WorkOrder::where('work_status', 'pending')->count() }}
                     </div>
                 </div>
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-green-500">
-                    <div class="text-gray-900 font-bold text-lg">Selesai</div>
-                    <div class="text-3xl font-bold text-green-600">
+                <div
+                    class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-green-500 transition-colors">
+                    <div class="text-gray-900 dark:text-gray-100 font-bold text-lg">Selesai</div>
+                    <div class="text-3xl font-bold text-green-600 dark:text-green-400">
                         {{ \App\Models\WorkOrder::where('work_status', 'completed')->count() }}
                     </div>
                 </div>
             </div>
 
-            {{-- Tabel Data --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-
+            {{-- TABEL DATA --}}
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg transition-colors">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-bold">Daftar Laporan Masuk</h3>
-
-                        {{-- TOMBOL BUAT TIKET (Memicu Modal Create) --}}
                         <button @click="showCreateModal = true"
                             class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition shadow-lg flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,85 +121,85 @@
                     </div>
 
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Tiket</th>
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        Tiket / Tgl</th>
                                     <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        Mesin & Plant</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                         Kerusakan</th>
                                     <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Pelapor</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                         Status</th>
                                     <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Prioritas</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                         Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 @forelse ($workOrders as $wo)
-                                    <tr>
-                                        <td
-                                            class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600 font-mono">
-                                            {{ $wo->ticket_num }}
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-bold text-blue-600 dark:text-blue-400 font-mono">
+                                                {{ $wo->ticket_num }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ \Carbon\Carbon::parse($wo->report_date)->format('d M Y') }} -
+                                                {{ \Carbon\Carbon::parse($wo->report_time)->format('H:i') }}
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                                {{ $wo->machine_name ?? '-' }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ $wo->plant ?? '-' }}</div>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <div class="text-sm font-medium text-gray-900">{{ $wo->kerusakan }}</div>
-                                            <div class="text-xs text-gray-500 truncate w-48">{{ $wo->kerusakan_detail }}
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {{ $wo->requester->name ?? '-' }}
-                                            <div class="text-xs text-gray-400">{{ $wo->created_at->diffForHumans() }}
-                                            </div>
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                                {{ $wo->damaged_part ?? $wo->kerusakan }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400 truncate w-48">
+                                                {{ Str::limit($wo->kerusakan_detail, 50) }}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             @php
-                                                $statusColor = match ($wo->work_status) {
-                                                    'pending' => 'bg-yellow-100 text-yellow-800',
-                                                    'in_progress' => 'bg-blue-100 text-blue-800',
-                                                    'completed' => 'bg-green-100 text-green-800',
-                                                    default => 'bg-gray-100 text-gray-800',
+                                                $statusClass = match ($wo->work_status) {
+                                                    'pending'
+                                                        => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+                                                    'in_progress'
+                                                        => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+                                                    'completed'
+                                                        => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+                                                    default
+                                                        => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
                                                 };
                                             @endphp
                                             <span
-                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusColor }}">
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusClass }}">
                                                 {{ ucfirst(str_replace('_', ' ', $wo->work_status)) }}
                                             </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span
-                                                class="text-sm font-semibold uppercase {{ $wo->priority === 'high' || $wo->priority === 'critical' ? 'text-red-600' : 'text-gray-600' }}">
-                                                {{ ucfirst($wo->priority) }}
-                                            </span>
+                                            <div class="text-xs text-gray-400 mt-1 uppercase">{{ $wo->priority }}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            {{-- Tombol Detail (Memicu Modal Detail) --}}
                                             <button
                                                 @click="ticket = {{ $wo->toJson() }}; ticket.requester_name = '{{ $wo->requester->name ?? '-' }}'; showDetailModal = true"
-                                                class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                                class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3">
                                                 Detail
                                             </button>
-
                                             @if (auth()->user()->role === 'admin')
                                                 <a href="#"
-                                                    class="text-gray-600 hover:text-gray-900 font-bold">Edit</a>
+                                                    class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-bold">Edit</a>
                                             @endif
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-                                            Belum ada laporan masuk.
-                                        </td>
+                                        <td colspan="5"
+                                            class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Belum ada
+                                            laporan masuk.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -153,7 +212,7 @@
 
         {{-- 
             =============================================
-            MODAL 1: CREATE TICKET (FORMULIR LAPORAN)
+            MODAL 1: CREATE TICKET
             =============================================
         --}}
         <div x-show="showCreateModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
@@ -166,153 +225,375 @@
                 <div x-show="showCreateModal" x-transition:enter="ease-out duration-300"
                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave="ease-in duration-200"
-                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl">
 
-                    {{-- Header Modal Create --}}
-                    <div class="bg-blue-600 px-4 py-3 sm:px-6 flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div
+                        class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-4 sm:px-6 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                                 </path>
                             </svg>
-                            Buat Laporan Kerusakan
+                            Isi Formulir Laporan Kerusakan
                         </h3>
-                        <button @click="showCreateModal = false" class="text-blue-100 hover:text-white">
-                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button @click="showCreateModal = false"
+                            class="text-gray-400 hover:text-gray-500 transition"><svg class="h-6 w-6" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
+                            </svg></button>
                     </div>
 
-                    {{-- Form Input --}}
-                    <form action="{{ route('work-orders.store') }}" method="POST">
+                    <form x-ref="createForm" action="{{ route('work-orders.store') }}" method="POST"
+                        enctype="multipart/form-data">
                         @csrf
-                        <div class="px-4 py-5 sm:p-6 space-y-4">
+                        <div class="px-4 py-5 sm:p-6 space-y-6">
 
-                            {{-- Input 1: Judul Kerusakan --}}
+                            {{-- Row 1: Waktu --}}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tanggal
+                                        Lapor</label>
+                                    <input type="date" name="report_date" x-model="currentDate" readonly
+                                        class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 shadow-sm cursor-not-allowed font-bold">
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Jam
+                                        Lapor (WIB)</label>
+                                    <input type="time" name="report_time" x-model="currentTime" readonly
+                                        class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 shadow-sm cursor-not-allowed font-bold">
+                                </div>
+                            </div>
+
+                            {{-- Row 2: Shift & Pelapor --}}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Shift</label>
+                                    <input type="text" name="shift" x-model="currentShift" readonly
+                                        class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 shadow-sm cursor-not-allowed font-bold text-center">
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Nama
+                                        Pelapor</label>
+                                    <input type="text" value="{{ auth()->user()->name }}" readonly
+                                        class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-500 dark:border-gray-600 dark:bg-gray-600 dark:text-gray-300 shadow-sm cursor-not-allowed">
+                                </div>
+                            </div>
+
+                            {{-- 
+                                LOGIC PLANT & MESIN (DIRAPIKAN)
+                                Menggunakan x-data terpisah untuk local scope agar variable tidak bentrok
+                            --}}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-data="{
+                                selectedPlant: '',
+                                machineOptions: [],
+                                isManualInput: false,
+                                allPlants: {{ Js::from($plants) }},
+                            
+                                init() {
+                                    // Reset saat modal dibuka
+                                    this.$watch('$parent.showCreateModal', (value) => {
+                                        if (!value) {
+                                            this.selectedPlant = '';
+                                            this.machineOptions = [];
+                                            this.isManualInput = false;
+                                        }
+                                    });
+                                },
+                            
+                                onPlantChange() {
+                                    const plantData = this.allPlants.find(p => p.name === this.selectedPlant);
+                                    if (plantData && plantData.machines.length > 0) {
+                                        this.machineOptions = plantData.machines;
+                                        this.isManualInput = false;
+                                    } else {
+                                        this.machineOptions = [];
+                                        this.isManualInput = true; // Default manual jika tidak ada mesin atau plant kosong
+                                    }
+                                    // Update nilai form utama
+                                    this.$data.form.plant = this.selectedPlant;
+                                    this.$data.form.machine_name = ''; // Reset mesin
+                                }
+                            }">
+
+                                <div>
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Plant</label>
+                                    <select name="plant" x-model="selectedPlant" @change="onPlantChange()"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="">Pilih Plant</option>
+                                        <template x-for="plant in allPlants" :key="plant.id">
+                                            <option :value="plant.name" x-text="plant.name"></option>
+                                        </template>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                        Nama Mesin / Forklift
+                                        <span x-show="isManualInput && selectedPlant"
+                                            class="text-xs text-blue-500 ml-1">(Input Manual)</span>
+                                    </label>
+
+                                    {{-- DROPDOWN (Tampil jika tidak manual) --}}
+                                    <select x-show="!isManualInput" x-model="form.machine_name" name="machine_name"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        :disabled="isManualInput">
+                                        <option value="">Pilih Mesin...</option>
+                                        <template x-for="mesin in machineOptions" :key="mesin.id">
+                                            <option :value="mesin.name" x-text="mesin.name"></option>
+                                        </template>
+                                    </select>
+
+                                    {{-- TEXT INPUT (Tampil jika manual atau plant belum dipilih) --}}
+                                    <input x-show="isManualInput" type="text" x-model="form.machine_name"
+                                        name="machine_name" placeholder="Ketik nama mesin..."
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        :disabled="!isManualInput">
+                                </div>
+                            </div>
+
+                            {{-- Row 4 --}}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Bagian
+                                        Mesin Rusak</label>
+                                    <input type="text" name="damaged_part" x-model="form.damaged_part"
+                                        placeholder="Contoh: Take Up, dll"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500">
+                                    <input type="hidden" name="kerusakan" x-bind:value="form.damaged_part">
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Keterangan
+                                        Produksi</label>
+                                    <select name="production_status" x-model="form.production_status"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500">
+                                        <option value="">Pilih Keterangan...</option>
+                                        <option value="Stop">Stop (Mogok)</option>
+                                        <option value="Running">Running (Jalan)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {{-- Row 5 --}}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Prioritas</label>
+                                    <select name="priority" x-model="form.priority"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500">
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                        <option value="critical">Critical</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Uraian
+                                        Kerusakan</label>
+                                    <textarea name="kerusakan_detail" x-model="form.kerusakan_detail" rows="1" placeholder="Jelaskan..."
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"></textarea>
+                                </div>
+                            </div>
+
+                            {{-- Row 6 --}}
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Kerusakan</label>
-                                <input type="text" name="kerusakan" required
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    placeholder="Contoh: AC Bocor di Ruang Meeting">
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Upload
+                                    Foto (Opsional)</label>
+                                <input type="file" name="photo" @change="handleFile"
+                                    class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-700 dark:file:text-gray-300" />
                             </div>
-
-                            {{-- Input 2: Detail Kerusakan --}}
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Detail Kerusakan</label>
-                                <textarea name="kerusakan_detail" rows="3" required
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    placeholder="Jelaskan detail masalahnya secara rinci..."></textarea>
-                            </div>
-
-                            {{-- Input 3: Priority --}}
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Tingkat Prioritas</label>
-                                <select name="priority"
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    <option value="low">Low (Santai)</option>
-                                    <option value="medium" selected>Medium (Biasa)</option>
-                                    <option value="high">High (Penting)</option>
-                                    <option value="critical">Critical (Darurat!)</option>
-                                </select>
-                            </div>
-
-                            {{-- Info Pelapor (Read Only) --}}
-                            <div class="bg-gray-50 p-3 rounded text-sm text-gray-500 flex justify-between">
-                                <span>Pelapor: <strong>{{ auth()->user()->name }}</strong></span>
-                                <span>Status Awal: <strong>Pending</strong></span>
-                            </div>
-
                         </div>
 
-                        {{-- Footer Form --}}
-                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                            <button type="submit"
-                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
-                                Kirim Laporan
-                            </button>
+                        <div
+                            class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse items-center gap-3 rounded-b-lg">
+                            <button type="button" @click="showConfirmModal = true"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:w-auto sm:text-sm transition-colors">Lihat
+                                & Kirim</button>
                             <button type="button" @click="showCreateModal = false"
-                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                                Batal
-                            </button>
+                                class="text-gray-400 hover:text-red-500 transition mr-auto sm:mr-0"><svg
+                                    class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                    </path>
+                                </svg></button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        {{-- 
-            =============================================
-            MODAL 2: DETAIL TICKET (Read Only)
-            =============================================
-        --}}
+        {{-- MODAL 3: PREVIEW --}}
+        <div x-show="showConfirmModal" style="display: none;" class="fixed inset-0 z-[60] overflow-y-auto"
+            aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div x-show="showConfirmModal" x-transition.opacity
+                class="fixed inset-0 bg-gray-900 bg-opacity-90 transition-opacity" @click="showConfirmModal = false">
+            </div>
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <div x-show="showConfirmModal" x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                    class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border-2 border-blue-500">
+                    <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div
+                                class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 class="text-lg font-semibold leading-6 text-gray-900 dark:text-white"
+                                    id="modal-title">Konfirmasi Laporan</h3>
+                                <div class="mt-4 space-y-3 text-sm text-gray-600 dark:text-gray-300">
+                                    <div class="grid grid-cols-2 gap-2 bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
+                                        <span class="font-semibold">Tanggal:</span> <span x-text="currentDate"></span>
+                                        <span class="font-semibold">Jam:</span> <span x-text="currentTime"></span>
+                                        <span class="font-semibold">Shift:</span> <span x-text="currentShift"></span>
+                                        <span class="font-semibold">Plant:</span> <span x-text="form.plant"></span>
+                                        <span class="font-semibold">Mesin:</span> <span
+                                            x-text="form.machine_name"></span>
+                                        <span class="font-semibold">Bagian Rusak:</span> <span
+                                            x-text="form.damaged_part"></span>
+                                        <span class="font-semibold">Status Prod:</span> <span
+                                            x-text="form.production_status"></span>
+                                        <span class="font-semibold">Prioritas:</span> <span
+                                            x-text="form.priority.toUpperCase()"></span>
+                                    </div>
+                                    <div>
+                                        <span class="font-bold block">Uraian Kerusakan:</span>
+                                        <p class="italic" x-text="form.kerusakan_detail"></p>
+                                    </div>
+                                    <template x-if="form.file_name">
+                                        <div class="text-blue-500 text-xs">📎 File terlampir: <span
+                                                x-text="form.file_name"></span></div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
+                        <button type="button" @click="submitForm()"
+                            class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto">Ya,
+                            Kirim Laporan</button>
+                        <button type="button" @click="showConfirmModal = false"
+                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-600 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-500 hover:bg-gray-50 dark:hover:bg-gray-500 sm:mt-0 sm:w-auto">Periksa
+                            Lagi</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- MODAL DETAIL (SAMA SEPERTI SEBELUMNYA) --}}
         <div x-show="showDetailModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div x-show="showDetailModal" x-transition.opacity
                 class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showDetailModal = false">
             </div>
-
             <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                 <div x-show="showDetailModal" x-transition:enter="ease-out duration-300"
                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                    class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-
-                    {{-- Header Modal Detail --}}
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center border-b">
-                        <h3 class="text-base font-semibold leading-6 text-gray-900">Detail Work Order</h3>
-                        <button @click="showDetailModal = false" class="text-gray-400 hover:text-gray-500">
-                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-3xl">
+                    <div
+                        class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 flex justify-between items-center border-b dark:border-gray-600">
+                        <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">Detail Work Order
+                        </h3>
+                        <button @click="showDetailModal = false" class="text-gray-400 hover:text-gray-500"><svg
+                                class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
+                            </svg></button>
                     </div>
-
-                    {{-- Isi Modal Detail --}}
-                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4" x-if="ticket">
-                        <div class="space-y-4">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <span class="text-xs text-gray-500 uppercase tracking-wide">Nomor Tiket</span>
-                                    <p class="text-xl font-bold text-blue-600 font-mono" x-text="ticket.ticket_num">
-                                    </p>
+                    <div class="bg-white dark:bg-gray-800 px-6 py-6 max-h-[80vh] overflow-y-auto">
+                        <template x-if="ticket">
+                            <div class="space-y-6">
+                                <div
+                                    class="flex justify-between items-start border-b border-gray-200 dark:border-gray-700 pb-4">
+                                    <div><span
+                                            class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nomor
+                                            Tiket</span>
+                                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono mt-1"
+                                            x-text="ticket.ticket_num"></p>
+                                    </div>
+                                    <div class="text-right"><span
+                                            class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</span>
+                                        <div class="mt-1"><span
+                                                class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                                x-text="ticket.work_status ? ticket.work_status.replace('_', ' ').toUpperCase() : ''"></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
-                                    x-text="ticket.work_status.charAt(0).toUpperCase() + ticket.work_status.slice(1).replace('_', ' ')"></span>
-                            </div>
-                            <div>
-                                <span class="text-xs text-gray-500 uppercase tracking-wide">Judul Masalah</span>
-                                <h4 class="text-lg font-medium text-gray-900" x-text="ticket.kerusakan"></h4>
-                            </div>
-                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                <span class="text-xs text-gray-500 uppercase tracking-wide">Deskripsi Detail</span>
-                                <p class="text-sm text-gray-600 mt-1 whitespace-pre-wrap"
-                                    x-text="ticket.kerusakan_detail"></p>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <span class="text-xs text-gray-500 uppercase tracking-wide">Prioritas</span>
-                                    <p class="text-sm font-medium uppercase" x-text="ticket.priority"></p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                    <div><span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Tanggal &
+                                            Jam Lapor</span>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white"><span
+                                                x-text="ticket.report_date"></span> • <span
+                                                x-text="ticket.report_time ? ticket.report_time.substring(0,5) : ''"></span>
+                                        </p>
+                                    </div>
+                                    <div><span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Pelapor /
+                                            Shift</span>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white"><span
+                                                x-text="ticket.requester_name"></span> (Shift <span
+                                                x-text="ticket.shift"></span>)</p>
+                                    </div>
+                                    <div><span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Plant /
+                                            Area</span>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white"
+                                            x-text="ticket.plant"></p>
+                                    </div>
+                                    <div><span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Mesin /
+                                            Unit</span>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white"
+                                            x-text="ticket.machine_name"></p>
+                                    </div>
+                                    <div><span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Bagian
+                                            Rusak</span>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white"
+                                            x-text="ticket.damaged_part"></p>
+                                    </div>
+                                    <div><span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Status
+                                            Produksi</span>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white"
+                                            x-text="ticket.production_status"></p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <span class="text-xs text-gray-500 uppercase tracking-wide">Pelapor</span>
-                                    <p class="text-sm font-medium text-gray-900" x-text="ticket.requester_name"></p>
+                                <div
+                                    class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-100 dark:border-gray-600">
+                                    <span
+                                        class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-2">Uraian
+                                        Kerusakan</span>
+                                    <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed"
+                                        x-text="ticket.kerusakan_detail"></p>
                                 </div>
+                                <template x-if="ticket.photo_path">
+                                    <div><span
+                                            class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-2">Foto
+                                            Bukti</span>
+                                        <div
+                                            class="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                                            <img :src="'/storage/' + ticket.photo_path" alt="Bukti Foto"
+                                                class="w-full h-auto max-h-96 object-contain bg-gray-100 dark:bg-gray-900">
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
-                        </div>
+                        </template>
                     </div>
-
-                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                        <button type="button"
-                            class="inline-flex w-full justify-center rounded-md bg-white border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-50 sm:ml-3 sm:w-auto"
-                            @click="showDetailModal = false">Tutup</button>
-                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6"><button
+                            type="button"
+                            class="inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-500 sm:ml-3 sm:w-auto"
+                            @click="showDetailModal = false">Tutup</button></div>
                 </div>
             </div>
         </div>
