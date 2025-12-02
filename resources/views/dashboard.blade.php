@@ -11,6 +11,7 @@
         showCreateModal: false,
         showConfirmModal: false,
         showEditModal: false,
+        showExportModal: false,
     
         // --- 2. DATA HOLDER ---
         ticket: null,
@@ -262,8 +263,22 @@
                         </div>
 
                         {{-- Tombol Buat Laporan --}}
-                        <div class="w-full md:w-auto flex justify-end">
-                            <button @click="showCreateModal = true"
+                        {{-- Tombol Action (Export & Create) --}}
+                        <div class="w-full md:w-auto flex flex-col md:flex-row gap-2 justify-end">
+
+                            {{-- 1. Tombol Export (Hijau) --}}
+                            <button @click="showExportModal = true" type="button"
+                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-4 rounded-lg text-sm transition shadow-lg flex items-center gap-2 w-full md:w-auto justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                    </path>
+                                </svg>
+                                Export Data
+                            </button>
+
+                            {{-- 2. Tombol Buat Laporan (Biru) --}}
+                            <button @click="showCreateModal = true" type="button"
                                 class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg text-sm transition shadow-lg flex items-center gap-2 w-full md:w-auto justify-center">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -336,7 +351,8 @@
                                                 class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusClass }}">
                                                 {{ ucfirst(str_replace('_', ' ', $wo->work_status)) }}
                                             </span>
-                                            <div class="text-xs text-gray-400 mt-1 uppercase">{{ $wo->priority }}</div>
+                                            <div class="text-xs text-gray-400 mt-1 uppercase">{{ $wo->priority }}
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button
@@ -890,6 +906,72 @@
                                 Perubahan</button>
                             <button type="button" @click="showEditModal = false"
                                 class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Batal</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div x-show="showExportModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto">
+            <div x-show="showExportModal" x-transition.opacity
+                class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" @click="showExportModal = false">
+            </div>
+
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <div x-show="showExportModal" x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                    class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-200 dark:border-gray-700">
+
+                    <div class="bg-white dark:bg-gray-800 px-4 py-4 sm:px-6 border-b dark:border-gray-700">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            Export Data Laporan
+                        </h3>
+                    </div>
+
+                    <form action="{{ route('work-orders.export') }}" method="GET">
+                        <div class="px-6 py-6 space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dari
+                                        Tanggal</label>
+                                    <input type="date" name="start_date" required
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500">
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sampai
+                                        Tanggal</label>
+                                    <input type="date" name="end_date" required
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Format</label>
+                                <select name="format"
+                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="csv">CSV (Excel Compatible)
+                                    </option>
+                                    {{-- Jika menggunakan package maatwebsite/excel, bisa tambahkan option xlsx --}}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 sm:flex sm:flex-row-reverse gap-3">
+                            <button type="submit"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                                Download
+                            </button>
+                            <button type="button" @click="showExportModal = false"
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                Batal
+                            </button>
                         </div>
                     </form>
                 </div>

@@ -80,4 +80,88 @@ class WorkOrderController extends Controller
         // 3. Kembali ke Dashboard
         return redirect()->route('dashboard')->with('success', 'Status laporan #' . $workOrder->ticket_num . ' berhasil diperbarui!');
     }
+    public function export(Request $request)
+    {
+        // 1. Validasi Input Tanggal
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date'   => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $startDate = $request->start_date;
+        $endDate = $request->end_date;
+
+        // 2. Ambil Data dari Database
+        $data = \App\Models\WorkOrder::with('requester')->whereBetween('report_date', [$startDate, $endDate])
+            ->orderBy('report_date', 'asc')
+            ->orderBy('report_time', 'asc')
+            ->get();
+
+        // 3. Nama File
+        $fileName = 'Laporan_WO_' . $startDate . '_sd_' . $endDate . '.csv';
+
+        // 4. Header CSV (Sesuaikan dengan kolom yang Anda inginkan)
+        $headers = array(
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        );
+
+        // 5. Kolom Judul di dalam file CSV
+        $columns = [
+            'No Tiket',
+            'Tanggal Lapor',
+            'Jam',
+            'ID Pelapor',
+            'Nama Pelapor',
+            'Shift',
+            'Plant',
+            'Mesin',
+            'Bagian Rusak',
+            'Detail Kerusakan',
+            'Prioritas',
+            'Status',
+            'Teknisi',
+            'Solusi',
+            'Sparepart',
+            'Tanggal Selesai'
+        ];
+
+        // 6. Callback untuk stream download
+        $callback = function () use ($data, $columns) {
+            $file = fopen('php://output', 'w');
+
+            // Tulis Judul Kolom
+            fputcsv($file, $columns);
+
+            // Tulis Baris Data
+            foreach ($data as $row) {
+                fputcsv($file, [
+                    $row->ticket_num,
+                    $row->report_date,
+                    $row->report_time,
+                    $row->requester_id,
+                    $row->requester->name ?? 'NO NAME, CEK ID PELAPOR', // Asumsi ada relasi atau kolom ini
+                    $row->shift,
+                    $row->plant,
+                    $row->machine_name,
+                    $row->damaged_part,
+                    $row->kerusakan_detail,
+                    $row->priority,
+                    $row->work_status,
+                    $row->technician,
+                    $row->repair_solution,
+                    $row->sparepart,
+                    $row->finished_date
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        // 7. Return Stream Download
+        return response()->stream($callback, 200, $headers);
+    }
 }
