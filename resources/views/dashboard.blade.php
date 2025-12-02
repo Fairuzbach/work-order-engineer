@@ -281,7 +281,7 @@
                                 <tr>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        Tiket / Tgl</th>
+                                        Tiket / Tanggal</th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                         Mesin & Plant</th>
@@ -387,7 +387,8 @@
                                                         Pencarian</h3>
                                                     <p class="mt-1 text-sm max-w-xs mx-auto">Silakan ketik
                                                         <strong>Nomor Tiket</strong>, <strong>Nama Plant</strong>, atau
-                                                        <strong>Mesin</strong>.</p>
+                                                        <strong>Mesin</strong>.
+                                                    </p>
                                                 @endif
                                             </div>
                                         </td>
