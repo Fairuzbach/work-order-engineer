@@ -28,9 +28,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
+    Route::get('/work-orders', function () {
+        return redirect()->route('dashboard');
+    });
     // Route Update (PUT)
-    Route::put('/work-orders/{workOrder}', [WorkOrderController::class, 'update'])->name('work-orders.update');
-    Route::get('/work-orders/export', [WorkOrderController::class, 'export'])->name('work-orders.export');
+    Route::get('/work-orders/export', [WorkOrderController::class, 'export'])->name('work-orders.export')->middleware(['throttle:3,1', 'can:export-data']);
+    Route::put('/work-orders/{workOrder}', [WorkOrderController::class, 'update'])->name('work-orders.update')->middleware('can:update, workOrder')->whereNumber('workOrder ');
 });
 
 require __DIR__ . '/auth.php';
