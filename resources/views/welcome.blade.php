@@ -310,7 +310,7 @@
 
     <footer
         class="bg-white dark:bg-gray-900 py-6 text-center text-sm text-gray-500 dark:text-gray-600 border-t border-gray-200 dark:border-gray-800 transition-colors duration-300">
-        &copy; {{ date('Y') }} Engineering Department. All rights reserved.
+        &copy; {{ date('Y') }} IT Department. All rights reserved.
     </footer>
 
 </body>

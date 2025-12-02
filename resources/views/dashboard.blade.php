@@ -13,7 +13,7 @@
         showEditModal: false,
     
         // --- 2. DATA HOLDER ---
-        ticket: null, // Untuk menampung data tiket yang sedang dilihat/diedit
+        ticket: null,
         allPlants: {{ Js::from($plants) }},
         allTechnicians: {{ Js::from($technicians) }},
     
@@ -287,7 +287,7 @@
                                         Mesin & Plant</th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        Kerusakan</th>
+                                        Gangguan</th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                         Status</th>
@@ -387,9 +387,7 @@
                                                         Pencarian</h3>
                                                     <p class="mt-1 text-sm max-w-xs mx-auto">Silakan ketik
                                                         <strong>Nomor Tiket</strong>, <strong>Nama Plant</strong>, atau
-                                                        <strong>Mesin</strong> pada kolom pencarian di atas dan tekan
-                                                        Enter.
-                                                    </p>
+                                                        <strong>Mesin</strong>.</p>
                                                 @endif
                                             </div>
                                         </td>
@@ -403,9 +401,7 @@
             </div>
         </div>
 
-        {{-- ========================================================= --}}
         {{-- MODAL 1: CREATE TICKET --}}
-        {{-- ========================================================= --}}
         <div x-show="showCreateModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div x-show="showCreateModal" x-transition.opacity
@@ -427,14 +423,14 @@
                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                                 </path>
                             </svg>
-                            Isi Formulir Laporan Kerusakan
+                            Isi Formulir Laporan Gangguan
                         </h3>
-                        <button @click="showCreateModal = false"
-                            class="text-gray-400 hover:text-gray-500 transition"><svg class="h-6 w-6" fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24">
+                        <button @click="showCreateModal = false" class="text-gray-400 hover:text-gray-500 transition">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12"></path>
-                            </svg></button>
+                            </svg>
+                        </button>
                     </div>
 
                     <form x-ref="createForm" action="{{ route('work-orders.store') }}" method="POST"
@@ -446,14 +442,14 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div><label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tanggal
-                                        Lapor</label><input type="date" name="report_date" x-model="currentDate"
-                                        readonly
+                                        Lapor</label>
+                                    <input type="date" name="report_date" x-model="currentDate" readonly
                                         class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 shadow-sm cursor-not-allowed font-bold">
                                 </div>
                                 <div><label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Jam
-                                        Lapor (WIB)</label><input type="time" name="report_time"
-                                        x-model="currentTime" readonly
+                                        Lapor (WIB)</label>
+                                    <input type="time" name="report_time" x-model="currentTime" readonly
                                         class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 shadow-sm cursor-not-allowed font-bold">
                                 </div>
                             </div>
@@ -461,14 +457,14 @@
                             {{-- Row 2: Shift & Pelapor --}}
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div><label
-                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Shift</label><input
-                                        type="text" name="shift" x-model="currentShift" readonly
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Shift</label>
+                                    <input type="text" name="shift" x-model="currentShift" readonly
                                         class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 shadow-sm cursor-not-allowed font-bold text-center">
                                 </div>
                                 <div><label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Nama
-                                        Pelapor</label><input type="text" value="{{ auth()->user()->name }}"
-                                        readonly
+                                        Pelapor</label>
+                                    <input type="text" value="{{ auth()->user()->name }}" readonly
                                         class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-500 dark:border-gray-600 dark:bg-gray-600 dark:text-gray-300 shadow-sm cursor-not-allowed">
                                 </div>
                             </div>
@@ -520,15 +516,13 @@
                                     <input type="hidden" name="kerusakan" x-bind:value="form.damaged_part">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                                        Keterangan Produksi
-                                    </label>
+                                    <label
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Keterangan
+                                        Produksi</label>
                                     <select name="production_status" x-model="form.production_status"
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"
                                         required>
                                         <option value="">Pilih Keterangan...</option>
-
-                                        {{-- Loop data dari Database --}}
                                         @foreach ($productionStatuses as $status)
                                             <option value="{{ $status->name }}">
                                                 {{ $status->code }} - {{ $status->name }}
@@ -554,7 +548,7 @@
                                 <div>
                                     <label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Uraian
-                                        Kerusakan</label>
+                                        Gangguan</label>
                                     <textarea name="kerusakan_detail" x-model="form.kerusakan_detail" rows="1" placeholder="Jelaskan..."
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"
                                         required></textarea>
@@ -576,21 +570,20 @@
                                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:w-auto sm:text-sm transition-colors">Lihat
                                 & Kirim</button>
                             <button type="button" @click="showCreateModal = false"
-                                class="text-gray-400 hover:text-red-500 transition mr-auto sm:mr-0"><svg
-                                    class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="text-gray-400 hover:text-red-500 transition mr-auto sm:mr-0">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
                                     </path>
-                                </svg></button>
+                                </svg>
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        {{-- ========================================================= --}}
         {{-- MODAL 2: PREVIEW / CONFIRMATION --}}
-        {{-- ========================================================= --}}
         <div x-show="showConfirmModal" style="display: none;" class="fixed inset-0 z-[60] overflow-y-auto"
             aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div x-show="showConfirmModal" x-transition.opacity
@@ -629,7 +622,7 @@
                                             x-text="form.priority.toUpperCase()"></span>
                                     </div>
                                     <div>
-                                        <span class="font-bold block">Uraian Kerusakan:</span>
+                                        <span class="font-bold block">Uraian Gangguan:</span>
                                         <p class="italic" x-text="form.kerusakan_detail"></p>
                                     </div>
                                     <template x-if="form.file_name">
@@ -652,43 +645,47 @@
             </div>
         </div>
 
-        {{-- ========================================================= --}}
-        {{-- MODAL 3: DETAIL TICKET --}}
-        {{-- ========================================================= --}}
-        <div x-show="showDetailModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
-            aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        {{-- MODAL 3: DETAIL TICKET (FIXED) --}}
+        <div x-show="showDetailModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto">
             <div x-show="showDetailModal" x-transition.opacity
                 class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showDetailModal = false">
             </div>
+
             <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                 <div x-show="showDetailModal" x-transition:enter="ease-out duration-300"
                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
                     class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-3xl">
+
                     <div
                         class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 flex justify-between items-center border-b dark:border-gray-600">
                         <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">Detail Work Order
                         </h3>
-                        <button @click="showDetailModal = false" class="text-gray-400 hover:text-gray-500"><svg
-                                class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button @click="showDetailModal = false" class="text-gray-400 hover:text-gray-500">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12"></path>
-                            </svg></button>
+                            </svg>
+                        </button>
                     </div>
+
                     <div class="bg-white dark:bg-gray-800 px-6 py-6 max-h-[80vh] overflow-y-auto">
                         <template x-if="ticket">
                             <div class="space-y-6">
                                 <div
                                     class="flex justify-between items-start border-b border-gray-200 dark:border-gray-700 pb-4">
-                                    <div><span
+                                    <div>
+                                        <span
                                             class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nomor
                                             Tiket</span>
                                         <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono mt-1"
                                             x-text="ticket.ticket_num"></p>
                                     </div>
-                                    <div class="text-right"><span
+                                    <div class="text-right">
+                                        <span
                                             class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</span>
-                                        <div class="mt-1"><span
+                                        <div class="mt-1">
+                                            <span
                                                 class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                                                 x-text="ticket.work_status ? ticket.work_status.replace('_', ' ').toUpperCase() : ''"></span>
                                         </div>
@@ -697,8 +694,8 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                                     <div><span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Tanggal &
                                             Jam Lapor</span>
-                                        <p class="text-sm font-medium text-gray-900 dark:text-white"><span
-                                                x-text="ticket.report_date"></span> • <span
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                            <span x-text="ticket.report_date"></span> • <span
                                                 x-text="ticket.report_time ? ticket.report_time.substring(0,5) : ''"></span>
                                         </p>
                                     </div>
@@ -738,12 +735,13 @@
                                     class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-100 dark:border-gray-600">
                                     <span
                                         class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-2">Uraian
-                                        Kerusakan</span>
+                                        Gangguan</span>
                                     <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed"
                                         x-text="ticket.kerusakan_detail"></p>
                                 </div>
                                 <template x-if="ticket.photo_path">
-                                    <div><span
+                                    <div>
+                                        <span
                                             class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-2">Foto
                                             Bukti</span>
                                         <div
@@ -756,19 +754,17 @@
                             </div>
                         </template>
                     </div>
-                    <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6"><button
-                            type="button"
+                    <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="button"
                             class="inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-500 sm:ml-3 sm:w-auto"
-                            @click="showDetailModal = false">Tutup</button></div>
+                            @click="showDetailModal = false">Tutup</button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        {{-- ========================================================= --}}
-        {{-- MODAL 4: EDIT TICKET (UPDATE STATUS) --}}
-        {{-- ========================================================= --}}
-        <div x-show="showEditModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
-            aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        {{-- MODAL 4: EDIT TICKET (FIXED) --}}
+        <div x-show="showEditModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto">
             <div x-show="showEditModal" x-transition.opacity
                 class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" @click="showEditModal = false">
             </div>
@@ -892,12 +888,11 @@
                                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">Simpan
                                 Perubahan</button>
                             <button type="button" @click="showEditModal = false"
-                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-600 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Batal</button>
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Batal</button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-
     </div>
 </x-app-layout>

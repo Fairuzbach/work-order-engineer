@@ -294,13 +294,13 @@ class PlantMachineSeeder extends Seeder
         ];
 
         foreach ($data['plants'] as $plantName) {
-            // 1. Simpan Plant
+
             $plant = Plant::create(['name' => $plantName]);
 
-            // 2. Cek apakah Plant ini punya daftar mesin?
+
             if (isset($data['mesins'][$plantName])) {
                 foreach ($data['mesins'][$plantName] as $machineName) {
-                    // 3. Simpan Mesin dan hubungkan ke Plant ID
+
                     Machine::create([
                         'plant_id' => $plant->id,
                         'name' => $machineName
