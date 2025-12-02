@@ -29,9 +29,22 @@ class WorkOrderController extends Controller
             $photoPath = $request->file('photo')->store('work_orders', 'public');
         }
 
+        $dateCode = date('Ymd');
+        $prefix = 'engIO-' . $dateCode . '-';
+
+        $lastWorkOrder = WorkOrder::where('ticket_num', 'like', $prefix . '%')->orderBy('id', 'desc')->first();
+
+        if ($lastWorkOrder) {
+            $lastNumber = (int) substr($lastWorkOrder->ticket_num, -2);
+            $newSequence = $lastNumber + 1;
+        } else {
+            $newSequence = 0;
+        }
+        $ticketNum = $prefix . sprintf('%03d', $newSequence);
+
         WorkOrder::create([
             'requester_id' => auth()->id(),
-            'ticket_num' => 'WO-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
+            'ticket_num' => $ticketNum,
             'report_date' => $request->report_date,
             'report_time' => $request->report_time,
             'shift' => $request->shift,
@@ -79,5 +92,86 @@ class WorkOrderController extends Controller
 
         // 3. Kembali ke Dashboard
         return redirect()->route('dashboard')->with('success', 'Status laporan #' . $workOrder->ticket_num . ' berhasil diperbarui!');
+    }
+    public function export(Request $request)
+    {
+        // 1. Validasi Input Tanggal
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date'   => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $startDate = $request->start_date;
+        $endDate = $request->end_date;
+
+        // 2. Ambil Data dari Database
+        $data = \App\Models\WorkOrder::with('requester')->whereBetween('report_date', [$startDate, $endDate])
+            ->orderBy('report_date', 'asc')
+            ->orderBy('report_time', 'asc')
+            ->get();
+
+        // 3. Nama File
+        $fileName = 'Laporan_WO_' . $startDate . '_sd_' . $endDate . '.csv';
+
+        // 4. Header CSV (Sesuaikan dengan kolom yang Anda inginkan)
+        $headers = array(
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        );
+
+        // 5. Kolom Judul di dalam file CSV
+        $columns = [
+            'No Tiket',
+            'Tanggal Lapor',
+            'Jam',
+            'ID Pelapor',
+            'Nama Pelapor',
+            'Shift',
+            'Plant',
+            'Mesin',
+            'Request', //
+            'Prioritas',
+            'Status',
+            'Engineer',
+            'Uraian Improvement',
+            'Sparepart',
+            'Tanggal Selesai'
+        ];
+
+        // 6. Callback untuk stream download
+        $callback = function () use ($data, $columns) {
+            $file = fopen('php://output', 'w');
+
+            // Tulis Judul Kolom
+            fputcsv($file, $columns);
+
+            // Tulis Baris Data
+            foreach ($data as $row) {
+                fputcsv($file, [
+                    $row->ticket_num, //nomor tiket
+                    $row->report_date,
+                    $row->report_time,
+                    $row->requester_id,
+                    $row->requester->name ?? 'NO NAME, CEK ID PELAPOR', // Asumsi ada relasi atau kolom ini
+                    $row->shift,
+                    $row->plant,
+                    $row->machine_name,
+                    $row->damaged_part, //REQUEST
+                    $row->priority,
+                    $row->work_status,
+                    $row->technician, //ENGINEER
+                    $row->repair_solution, //URAIAN IMPROVEMENT
+                    $row->sparepart,
+                    $row->finished_date
+                ]);
+            }
+            fclose($file);
+        };
+
+        // 7. Return Stream Download
+        return response()->stream($callback, 200, $headers);
     }
 }

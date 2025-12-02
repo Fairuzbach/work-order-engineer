@@ -30,6 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
     // Route Update (PUT)
     Route::put('/work-orders/{workOrder}', [WorkOrderController::class, 'update'])->name('work-orders.update');
+    Route::get('/work-orders/export', [WorkOrderController::class, 'export'])->name('work-orders.export');
 });
 
 require __DIR__ . '/auth.php';
