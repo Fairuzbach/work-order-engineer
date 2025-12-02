@@ -95,10 +95,7 @@ class PlantMachineSeeder extends Seeder
                     'AR-21',
                     'REW-AR-72B-1',
                     'REW-AR-72B-2',
-                    'AR-72B',
-                    'Heli 2,5 Ton',
-                    'Heli 5 Ton',
-                    'Heli 1,8 Ton',
+                    'AR-72B'
                 ],
                 'Plant B' => [
                     'RBD-AL',
@@ -133,10 +130,7 @@ class PlantMachineSeeder extends Seeder
                     'ST-54B',
                     'ST-54D',
                     'AR-72',
-                    'WR-1',
-                    'Heli 1,8 Ton',
-                    'Nissan 3,5 Ton',
-                    'Heli 3,5 Ton',
+                    'WR-1'
                 ],
                 'Plant C' => [
                     'MD-2C',
@@ -214,9 +208,7 @@ class PlantMachineSeeder extends Seeder
                     'SWB-32B',
                     'REW-SWB-48A',
                     'SWB-48',
-                    'TP-10',
-                    'Heli 2,5 Ton',
-                    'Heli 3,5 Ton',
+                    'TP-10'
                 ],
                 'Plant D' => [
                     'CCV-JHON ROYLE',
@@ -240,9 +232,7 @@ class PlantMachineSeeder extends Seeder
                     'EX--120B',
                     'EX--120C',
                     'EX--160A',
-                    'TP-7',
-                    'Heli 10 Ton',
-                    'Heli 2,5 Ton',
+                    'TP-7'
                 ],
                 'Plant E' => [
                     'COL-4A',
@@ -280,11 +270,11 @@ class PlantMachineSeeder extends Seeder
                     'EX-90I',
                     'EX-90J',
                 ],
-                'SC' => ['Heli 2,5 Ton', 'Nissan 2,5 Ton', 'Heli 3,5 Ton'],
-                'SS' => ['Nissan 3,5 Ton', 'Heli 3,5 Ton', 'Heli 7 Ton', 'Heli 10 Ton'],
-                'FO' => ['Heli 3,5 Ton'],
-                'FH' => ['Heli 3,5 Ton'],
-                'QR' => ['Heli 3,5 Ton'],
+                'SC' => [],
+                'SS' => [],
+                'FO' => [],
+                'FH' => [],
+                'QR' => [],
                 // Sisanya kosong
                 'PE' => [],
                 'QC' => [],

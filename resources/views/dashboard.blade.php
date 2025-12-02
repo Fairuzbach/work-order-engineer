@@ -302,7 +302,7 @@
                                         Mesin & Plant</th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        Gangguan</th>
+                                        Improvement</th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                         Status</th>
@@ -440,7 +440,7 @@
                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                                 </path>
                             </svg>
-                            Isi Formulir Laporan Gangguan
+                            Fill the Improvement Request Form
                         </h3>
                         <button @click="showCreateModal = false" class="text-gray-400 hover:text-gray-500 transition">
                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -502,7 +502,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                                        Nama Mesin / Forklift <span x-show="isManualInput && selectedPlant"
+                                        Nama Mesin <span x-show="isManualInput && selectedPlant"
                                             class="text-xs text-blue-500 ml-1">(Input Manual)</span>
                                     </label>
                                     <select x-show="!isManualInput" x-model="form.machine_name" name="machine_name"
@@ -524,8 +524,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label
-                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Bagian
-                                        Mesin Rusak</label>
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Request</label>
                                     <input type="text" name="damaged_part" x-model="form.damaged_part"
                                         placeholder="Contoh: Take Up, dll"
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"
@@ -534,8 +533,8 @@
                                 </div>
                                 <div>
                                     <label
-                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Keterangan
-                                        Produksi</label>
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Parameter
+                                        Improvement</label>
                                     <select name="production_status" x-model="form.production_status"
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"
                                         required>
@@ -565,7 +564,7 @@
                                 <div>
                                     <label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Uraian
-                                        Gangguan</label>
+                                        Improvement</label>
                                     <textarea name="kerusakan_detail" x-model="form.kerusakan_detail" rows="1" placeholder="Jelaskan..."
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"
                                         required></textarea>
@@ -639,7 +638,7 @@
                                             x-text="form.priority.toUpperCase()"></span>
                                     </div>
                                     <div>
-                                        <span class="font-bold block">Uraian Gangguan:</span>
+                                        <span class="font-bold block">Uraian Improvement:</span>
                                         <p class="italic" x-text="form.kerusakan_detail"></p>
                                     </div>
                                     <template x-if="form.file_name">
@@ -752,7 +751,7 @@
                                     class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-100 dark:border-gray-600">
                                     <span
                                         class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-2">Uraian
-                                        Gangguan</span>
+                                        Improvement</span>
                                     <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed"
                                         x-text="ticket.kerusakan_detail"></p>
                                 </div>
@@ -825,13 +824,13 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-400 mb-1">Waktu Mulai
-                                        Perbaikan</label>
+                                        Improvement</label>
                                     <input type="time" name="start_time" x-model="editForm.start_time"
                                         class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-400 mb-1">Waktu Selesai
-                                        Perbaikan</label>
+                                        Improvement</label>
                                     <input type="time" name="end_time" x-model="editForm.end_time"
                                         class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
                                 </div>
@@ -839,11 +838,11 @@
 
                             {{-- TEKNISI MULTI-SELECT --}}
                             <div class="space-y-2">
-                                <label class="block text-sm font-medium text-gray-400">Nama Teknisi (Maks. 5)</label>
+                                <label class="block text-sm font-medium text-gray-400">Nama Engineer (Maks. 5)</label>
 
                                 <select @change="addTechnician($event.target.value); $event.target.value = ''"
                                     class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
-                                    <option value="">Pilih Teknisi...</option>
+                                    <option value="">Pilih Engineer...</option>
                                     <template x-for="tech in allTechnicians" :key="tech.id">
                                         <option :value="tech.name" x-text="tech.name"></option>
                                     </template>
@@ -866,14 +865,14 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-400 mb-1">Keterangan
-                                        Produksi</label>
+                                        Parameter Improvement</label>
                                     <input type="text" x-model="editForm.production_note"
                                         class="w-full rounded-md bg-gray-800 border-gray-700 text-gray-400 cursor-not-allowed"
                                         readonly>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Keterangan
-                                        Maintenance</label>
+                                {{-- <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Parameter
+                                        Improvement</label>
                                     <select name="maintenance_note" x-model="editForm.maintenance_note"
                                         class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
                                         <option value="">Pilih Keterangan...</option>
@@ -881,15 +880,15 @@
                                             <option value="{{ $ms->name }}">{{ $ms->name }}</option>
                                         @endforeach
                                     </select>
-                                </div>
+                                </div> --}}
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-400 mb-1">Uraian
-                                        Perbaikan</label>
+                                        Improvement</label>
                                     <textarea name="repair_solution" x-model="editForm.repair_solution" rows="3"
-                                        placeholder="Jelaskan detail perbaikan..."
+                                        placeholder="Jelaskan detail improvement..."
                                         class="w-full rounded-md bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500"></textarea>
                                 </div>
                                 <div>
@@ -934,7 +933,7 @@
                         </h3>
                     </div>
 
-                    <form action="{{ route('work-orders.export') }}" method="GET">
+                    <form action="{{ route('work-orders.export') }}" method="GET" onsubmit="handleExport()">
                         <div class="px-6 py-6 space-y-4">
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
@@ -979,3 +978,12 @@
         </div>
     </div>
 </x-app-layout>
+<script>
+    function handleSubmit() {
+        document.getElementById('loading-spinner').style.display = 'block';
+        setTimeout(function() {
+            document.getElementById('loading-spinner').style.display = 'none';
+            aleret('Jika download belum selesai, silahkan tunggu sebentar lagi..');
+        }, 5000)
+    }
+</script>

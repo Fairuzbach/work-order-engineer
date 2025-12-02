@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ config('app.name') }}</title>
-    <title>WOEngineer</title>
+    <title>engIO</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{-- <link rel="icon" href="{{ asset('favicon.ico') }}"> --}}
@@ -133,10 +133,10 @@
             <div class="text-center mb-10 mt-4">
                 <h1
                     class="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-5xl transition-colors">
-                    Work Order <span class="text-indigo-600 dark:text-indigo-500">Engineering</span>
+                    Engineering Improvement <span class="text-indigo-600 dark:text-indigo-500">Order</span>
                 </h1>
                 <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 transition-colors">
-                    Live report. Track the status of your engineering work orders in real-time.
+                    Live report. Track the status of your engineering improvement orders in real-time.
                 </p>
             </div>
 

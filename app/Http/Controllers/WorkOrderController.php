@@ -29,9 +29,22 @@ class WorkOrderController extends Controller
             $photoPath = $request->file('photo')->store('work_orders', 'public');
         }
 
+        $dateCode = date('Ymd');
+        $prefix = 'engIO-' . $dateCode . '-';
+
+        $lastWorkOrder = WorkOrder::where('ticket_num', 'like', $prefix . '%')->orderBy('id', 'desc')->first();
+
+        if ($lastWorkOrder) {
+            $lastNumber = (int) substr($lastWorkOrder->ticket_num, -2);
+            $newSequence = $lastNumber + 1;
+        } else {
+            $newSequence = 0;
+        }
+        $ticketNum = $prefix . sprintf('%03d', $newSequence);
+
         WorkOrder::create([
             'requester_id' => auth()->id(),
-            'ticket_num' => 'WO-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
+            'ticket_num' => $ticketNum,
             'report_date' => $request->report_date,
             'report_time' => $request->report_time,
             'shift' => $request->shift,
@@ -119,12 +132,11 @@ class WorkOrderController extends Controller
             'Shift',
             'Plant',
             'Mesin',
-            'Bagian Rusak',
-            'Detail Kerusakan',
+            'Request', //
             'Prioritas',
             'Status',
-            'Teknisi',
-            'Solusi',
+            'Engineer',
+            'Uraian Improvement',
             'Sparepart',
             'Tanggal Selesai'
         ];
@@ -139,7 +151,7 @@ class WorkOrderController extends Controller
             // Tulis Baris Data
             foreach ($data as $row) {
                 fputcsv($file, [
-                    $row->ticket_num,
+                    $row->ticket_num, //nomor tiket
                     $row->report_date,
                     $row->report_time,
                     $row->requester_id,
@@ -147,17 +159,15 @@ class WorkOrderController extends Controller
                     $row->shift,
                     $row->plant,
                     $row->machine_name,
-                    $row->damaged_part,
-                    $row->kerusakan_detail,
+                    $row->damaged_part, //REQUEST
                     $row->priority,
                     $row->work_status,
-                    $row->technician,
-                    $row->repair_solution,
+                    $row->technician, //ENGINEER
+                    $row->repair_solution, //URAIAN IMPROVEMENT
                     $row->sparepart,
                     $row->finished_date
                 ]);
             }
-
             fclose($file);
         };
 
