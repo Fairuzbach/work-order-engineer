@@ -13,53 +13,58 @@
         showEditModal: false,
         showExportModal: false,
     
-        // --- 2. DATA HOLDER ---
+        // --- 2. DATA EXPORT ---
+        selectedTickets: [],
+        pageIds: {{ Js::from($workOrders->pluck('id')) }},
+    
+        // --- 3. DATA HOLDER ---
         ticket: null,
         allPlants: {{ Js::from($plants) }},
         allTechnicians: {{ Js::from($technicians) }},
     
-        // --- 3. REALTIME CLOCK ---
+        // --- 4. FORM VARIABLES ---
         currentDate: '',
         currentTime: '',
         currentShift: '',
-    
-        // --- 4. FORM CREATE ---
         selectedPlant: '',
         machineOptions: [],
         isManualInput: false,
-        form: {
-            kerusakan: '',
-            kerusakan_detail: '',
-            priority: 'medium',
-            plant: '',
-            machine_name: '',
-            damaged_part: '',
-            production_status: '',
-            file_name: ''
-        },
     
-        // --- 5. FORM EDIT ---
-        editForm: {
-            id: '',
-            ticket_num: '',
-            work_status: '',
-            finished_date: '',
-            start_time: '',
-            end_time: '',
-            selectedTechnicians: [],
-            technician_string: '',
-            production_note: '',
-            maintenance_note: '',
-            repair_solution: '',
-            sparepart: ''
-        },
+        form: { kerusakan: '', kerusakan_detail: '', priority: 'medium', plant: '', machine_name: '', damaged_part: '', production_status: '', file_name: '' },
+    
+        editForm: { id: '', ticket_num: '', work_status: '', finished_date: '', start_time: '', end_time: '', selectedTechnicians: [], technician_string: '', production_note: '', maintenance_note: '', repair_solution: '', sparepart: '' },
     
         // ================= FUNCTIONS =================
     
-        // Update Waktu & Shift Otomatis
+        // --- CHECKBOX LOGIC ---
+        toggleSelectAll() {
+            const allSelected = this.pageIds.every(id => this.selectedTickets.includes(id));
+            if (allSelected) {
+                this.selectedTickets = this.selectedTickets.filter(id => !this.pageIds.includes(id));
+            } else {
+                this.pageIds.forEach(id => {
+                    if (!this.selectedTickets.includes(id)) this.selectedTickets.push(id);
+                });
+            }
+        },
+    
+        // --- EXPORT LOGIC ---
+        handleExportClick() {
+            if (this.selectedTickets.length > 0) {
+                const ids = this.selectedTickets.join(',');
+                window.location.href = `{{ route('work-orders.export') }}?ticket_ids=${ids}`;
+                setTimeout(() => {
+                    this.selectedTickets = [];
+                    localStorage.removeItem('selected_wo_ids');
+                }, 2000);
+            } else {
+                this.showExportModal = true;
+            }
+        },
+    
+        // --- CLOCK & SHIFT ---
         updateTime() {
             const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-    
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
@@ -70,21 +75,12 @@
             this.currentTime = `${hours}:${minutes}`;
     
             const totalMinutes = (now.getHours() * 60) + now.getMinutes();
-    
-            //Shift Time
-            if (totalMinutes >= 405 && totalMinutes <= 915) {
-                this.currentShift = '1';
-            } else if (totalMinutes >= 916 && totalMinutes <= 1365) {
-                this.currentShift = '2';
-            } else {
-                this.currentShift = '3';
-            }
+            if (totalMinutes >= 405 && totalMinutes <= 915) { this.currentShift = '1'; } else if (totalMinutes >= 916 && totalMinutes <= 1365) { this.currentShift = '2'; } else { this.currentShift = '3'; }
         },
     
-        // Logic Ganti Plant (Create Form)
+        // --- FORM LOGIC ---
         onPlantChange() {
             const plantData = this.allPlants.find(p => p.name === this.selectedPlant);
-    
             if (plantData && plantData.machines.length > 0) {
                 this.machineOptions = plantData.machines;
                 this.isManualInput = false;
@@ -92,27 +88,17 @@
                 this.machineOptions = [];
                 this.isManualInput = true;
             }
-    
             this.form.plant = this.selectedPlant;
             this.form.machine_name = '';
         },
     
-        // Logic File Upload (Create Form)
-        handleFile(event) {
-            const file = event.target.files[0];
-            this.form.file_name = file ? file.name : '';
-        },
+        handleFile(event) { this.form.file_name = event.target.files[0] ? event.target.files[0].name : ''; },
     
-        // Logic Submit Create
         submitForm() {
-            if (this.$refs.createForm.reportValidity()) {
-                this.$refs.createForm.submit();
-            } else {
-                this.showConfirmModal = false;
-            }
+            if (this.$refs.createForm.reportValidity()) { this.$refs.createForm.submit(); } else { this.showConfirmModal = false; }
         },
     
-        // Logic Buka Modal Edit
+        // --- EDIT MODAL LOGIC --- //
         openEditModal(data) {
             this.ticket = data;
             this.editForm.id = data.id;
@@ -120,51 +106,60 @@
             this.editForm.work_status = data.work_status;
             this.editForm.production_note = data.production_status;
     
-            // Reset field edit
-            this.editForm.finished_date = data.finished_date || '';
-            this.editForm.start_time = data.start_time || '';
-            this.editForm.end_time = data.end_time || '';
+            // Fix Format Tanggal & Jam untuk Edit
+            this.editForm.finished_date = data.finished_date ? data.finished_date.substring(0, 10) : '';
+            this.editForm.start_time = data.start_time ? data.start_time.substring(0, 5) : '';
+            this.editForm.end_time = data.end_time ? data.end_time.substring(0, 5) : '';
+    
             this.editForm.maintenance_note = data.maintenance_note || '';
             this.editForm.repair_solution = data.repair_solution || '';
             this.editForm.sparepart = data.sparepart || '';
     
-            // Parse Teknisi
-            this.editForm.selectedTechnicians = [];
-            if (data.technician) {
-                this.editForm.selectedTechnicians = data.technician.split(', ').filter(Boolean);
-                this.editForm.technician_string = data.technician;
-            } else {
-                this.editForm.technician_string = '';
-            }
+            this.editForm.selectedTechnicians = data.technician ? data.technician.split(', ').filter(Boolean) : [];
+            this.editForm.technician_string = data.technician || '';
     
             this.showEditModal = true;
         },
     
-        // Logic Tambah Teknisi (Edit Form)
         addTechnician(techName) {
-            if (!techName) return;
-            if (this.editForm.selectedTechnicians.length >= 5) {
-                alert('Maksimal 5 teknisi!');
-                return;
-            }
+            if (!techName || this.editForm.selectedTechnicians.length >= 5) return;
             if (!this.editForm.selectedTechnicians.includes(techName)) {
                 this.editForm.selectedTechnicians.push(techName);
             }
             this.editForm.technician_string = this.editForm.selectedTechnicians.join(', ');
         },
     
-        // Logic Hapus Teknisi (Edit Form)
         removeTechnician(index) {
             this.editForm.selectedTechnicians.splice(index, 1);
             this.editForm.technician_string = this.editForm.selectedTechnicians.join(', ');
         },
     
-        // Init Script
+        // --- INITIALIZATION ---
         init() {
             this.updateTime();
             setInterval(() => { this.updateTime(); }, 1000);
     
-            // Reset Create Form saat modal ditutup
+            // 1. Load Checkbox dari Storage
+            const saved = localStorage.getItem('selected_wo_ids');
+            if (saved) this.selectedTickets = JSON.parse(saved);
+    
+            // 2. Save Checkbox ke Storage
+            this.$watch('selectedTickets', (value) => {
+                localStorage.setItem('selected_wo_ids', JSON.stringify(value));
+            });
+    
+            // 3. Init Flatpickr (Jam 24 Jam)
+            setTimeout(() => {
+                flatpickr('.timepicker', {
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: 'H:i',
+                    time_24hr: true,
+                    static: true
+                });
+            }, 1000);
+    
+            // 4. Reset Form Create saat tutup modal
             this.$watch('showCreateModal', (value) => {
                 if (!value) {
                     this.selectedPlant = '';
@@ -181,8 +176,14 @@
     }" x-init="init()">
 
         {{-- Auto Open Modal jika ada error validasi Laravel --}}
-        @if ($errors->any())
+        {{-- Auto Open Modal HANYA jika error berasal dari inputan Create Form --}}
+        @if ($errors->hasAny(['machine_name', 'damaged_part', 'production_status', 'kerusakan_detail', 'photo']))
             <div x-init="showCreateModal = true"></div>
+        @endif
+
+        {{-- Opsional: Auto Open Modal Export jika error berasal dari tanggal Export --}}
+        @if ($errors->hasAny(['start_date', 'end_date']))
+            <div x-init="showExportModal = true"></div>
         @endif
 
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -226,8 +227,10 @@
                     {{-- Header Tabel & Search --}}
                     <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                         {{-- Search Bar --}}
-                        <div class="w-full md:w-1/3">
-                            <form action="{{ route('dashboard') }}" method="GET" class="relative flex items-center">
+                        <div class="w-full md:w-2/3">
+                            <form action="{{ route('dashboard') }}" method="GET"
+                                class="flex flex-col md:flex-row gap-3">
+
                                 <div class="relative w-full">
                                     <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                         <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
@@ -238,27 +241,39 @@
                                     </div>
                                     <input type="text" name="search" value="{{ request('search') }}"
                                         class="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                        placeholder="Cari Tiket, Plant, atau Mesin...">
-                                    @if (request('search'))
-                                        <a href="{{ route('dashboard') }}"
-                                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-red-500 transition">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M6 18L18 6M6 6l12 12"></path>
-                                            </svg>
-                                        </a>
-                                    @endif
+                                        placeholder="Cari Tiket, Plant, Mesin...">
                                 </div>
-                                <button type="submit"
-                                    class="p-2.5 ml-2 text-sm font-medium text-white bg-blue-700 rounded-lg border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                                    <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
-                                        fill="none" viewBox="0 0 20 20">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                            stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-                                    </svg>
-                                    <span class="sr-only">Search</span>
-                                </button>
+                                {{-- Filter Status --}}
+                                <div class="w-full md:w-48">
+                                    <select name="work_status" onchange="this.form.submit()"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                        <option value="">Filter Status</option>
+                                        <option value="pending"
+                                            {{ request('work_status') == 'pending' ? 'selected' : '' }}>Pending
+                                        </option>
+                                        <option value="in_progress"
+                                            {{ request('work_status') == 'in_progress' ? 'selected' : '' }}>In Progress
+                                        </option>
+                                        <option value="completed"
+                                            {{ request('work_status') == 'completed' ? 'selected' : '' }}>Completed
+                                        </option>
+                                        <option value="cancelled"
+                                            {{ request('work_status') == 'cancelled' ? 'selected' : '' }}>Cancelled
+                                        </option>
+                                    </select>
+                                </div>
+
+                                @if (request('search') || request('work_status'))
+                                    <a href="{{ route('dashboard') }}"
+                                        class="p-2.5 text-sm font-medium text-gray-900 bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-red-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 flex items-center justify-center gap-2 px-4 whitespace-nowrap">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                        Reset
+                                    </a>
+                                @endif
+
                             </form>
                         </div>
 
@@ -267,14 +282,18 @@
                         <div class="w-full md:w-auto flex flex-col md:flex-row gap-2 justify-end">
 
                             {{-- 1. Tombol Export (Hijau) --}}
-                            <button @click="showExportModal = true" type="button"
+                            <button @click="handleExportClick()" type="button"
                                 class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-4 rounded-lg text-sm transition shadow-lg flex items-center gap-2 w-full md:w-auto justify-center">
+
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                                     </path>
                                 </svg>
-                                Export Data
+
+                                {{-- Ubah Text Secara Dinamis --}}
+                                <span
+                                    x-text="selectedTickets.length > 0 ? 'Export (' + selectedTickets.length + ') Data' : 'Export Data'"></span>
                             </button>
 
                             {{-- 2. Tombol Buat Laporan (Biru) --}}
@@ -294,6 +313,14 @@
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
+                                    {{-- CHECKBOX HEADER (SELECT ALL ON PAGE) --}}
+                                    <th scope="col" class="px-6 py-3 text-left w-10">
+                                        <input type="checkbox" @click="toggleSelectAll()"
+                                            :checked="pageIds.length > 0 && pageIds.every(id => selectedTickets.includes(id))"
+                                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer">
+                                    </th>
+
+                                    {{-- Header Lainnya --}}
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                         Tiket / Tanggal</th>
@@ -313,7 +340,19 @@
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 @forelse ($workOrders as $wo)
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                        :class="selectedTickets.includes({{ $wo->id }}) ?
+                                            'bg-blue-50 dark:bg-blue-900/20' : ''">
+
+                                        {{-- CHECKBOX ROW --}}
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            {{-- Gunakan x-model untuk sinkronisasi otomatis dengan array selectedTickets --}}
+                                            <input type="checkbox" value="{{ $wo->id }}"
+                                                x-model="selectedTickets"
+                                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer">
+                                        </td>
+
+                                        {{-- Kolom Data Lainnya (Tetap Sama) --}}
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm font-bold text-blue-600 dark:text-blue-400 font-mono">
                                                 {{ $wo->ticket_num }}</div>
@@ -322,6 +361,7 @@
                                                 {{ \Carbon\Carbon::parse($wo->report_time)->format('H:i') }}
                                             </div>
                                         </td>
+
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm font-medium text-gray-900 dark:text-white">
                                                 {{ $wo->machine_name ?? '-' }}</div>
@@ -343,6 +383,8 @@
                                                         => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
                                                     'completed'
                                                         => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+                                                    'cancelled'
+                                                        => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
                                                     default
                                                         => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
                                                 };
@@ -357,57 +399,18 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button
                                                 @click="ticket = {{ $wo->toJson() }}; ticket.requester_name = '{{ $wo->requester->name ?? '-' }}'; showDetailModal = true"
-                                                class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3">
-                                                Detail
-                                            </button>
+                                                class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3">Detail</button>
                                             @if (auth()->user()->role === 'admin')
                                                 <button @click="openEditModal({{ $wo->toJson() }})"
-                                                    class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-bold">
-                                                    Edit
-                                                </button>
+                                                    class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-bold">Edit</button>
                                             @endif
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5"
-                                            class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                                            <div class="flex flex-col items-center justify-center">
-                                                @if (request('search'))
-                                                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-full mb-3">
-                                                        <svg class="w-10 h-10 text-gray-400" fill="none"
-                                                            stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2"
-                                                                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                                                            </path>
-                                                        </svg>
-                                                    </div>
-                                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Data
-                                                        Tidak Ditemukan</h3>
-                                                    <p class="mt-1 text-sm">Tidak ada laporan yang cocok dengan kata
-                                                        kunci "<strong>{{ request('search') }}</strong>".</p>
-                                                    <a href="{{ route('dashboard') }}"
-                                                        class="mt-3 text-blue-600 hover:underline text-sm">Reset
-                                                        Pencarian</a>
-                                                @else
-                                                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-full mb-3">
-                                                        <svg class="w-10 h-10 text-blue-500 dark:text-blue-400"
-                                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2"
-                                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                                        </svg>
-                                                    </div>
-                                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Mulai
-                                                        Pencarian</h3>
-                                                    <p class="mt-1 text-sm max-w-xs mx-auto">Silakan ketik
-                                                        <strong>Nomor Tiket</strong>, <strong>Nama Plant</strong>, atau
-                                                        <strong>Mesin</strong>.
-                                                    </p>
-                                                @endif
-                                            </div>
-                                        </td>
+                                        <td colspan="7"
+                                            class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Data Tidak
+                                            Ditemukan</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -711,7 +714,9 @@
                                     <div><span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Tanggal &
                                             Jam Lapor</span>
                                         <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                            <span x-text="ticket.report_date"></span> • <span
+                                            <span
+                                                x-text="ticket.report_date ? ticket.report_date.substring(0,10).replace(/-/g, '/'):''"></span>
+                                            • <span
                                                 x-text="ticket.report_time ? ticket.report_time.substring(0,5) : ''"></span>
                                         </p>
                                     </div>
@@ -779,20 +784,21 @@
             </div>
         </div>
 
-        {{-- MODAL 4: EDIT TICKET (FIXED) --}}
+        {{-- MODAL 4: EDIT TICKET (LIGHT MODE FIXED) --}}
         <div x-show="showEditModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto">
             <div x-show="showEditModal" x-transition.opacity
-                class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" @click="showEditModal = false">
+                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showEditModal = false">
             </div>
 
             <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                 <div x-show="showEditModal" x-transition:enter="ease-out duration-300"
                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                    class="relative transform overflow-hidden rounded-lg bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl border border-gray-700">
+                    class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl">
 
-                    <div class="bg-gray-800 px-4 py-4 sm:px-6 border-b border-gray-700">
-                        <h3 class="text-lg font-bold text-white"
+                    {{-- Header --}}
+                    <div class="bg-white px-4 py-4 sm:px-6 border-b border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-900"
                             x-text="'Update Status Laporan #' + (ticket ? ticket.ticket_num : '')"></h3>
                     </div>
 
@@ -803,9 +809,9 @@
                         <div class="px-6 py-6 space-y-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Status</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                                     <select name="work_status" x-model="editForm.work_status"
-                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
+                                        class="w-full rounded-md bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500">
                                         <option value="pending">Pending</option>
                                         <option value="in_progress">In Progress</option>
                                         <option value="completed">Completed</option>
@@ -813,35 +819,36 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Tanggal Selesai</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai</label>
                                     <div class="relative">
                                         <input type="date" name="finished_date" x-model="editForm.finished_date"
-                                            class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500 pl-3">
+                                            class="w-full rounded-md bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500 pl-3">
                                     </div>
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Waktu Mulai
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Waktu Mulai
                                         Improvement</label>
-                                    <input type="time" name="start_time" x-model="editForm.start_time"
-                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
+                                    <input type="text" name="start_time" x-model="editForm.start_time"
+                                        class="timepicker w-full rounded-md bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+                                        required>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Waktu Selesai
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Waktu Selesai
                                         Improvement</label>
-                                    <input type="time" name="end_time" x-model="editForm.end_time"
-                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
+                                    <input type="text" name="end_time" x-model="editForm.end_time"
+                                        class="timepicker w-full rounded-md bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500">
                                 </div>
                             </div>
 
                             {{-- TEKNISI MULTI-SELECT --}}
                             <div class="space-y-2">
-                                <label class="block text-sm font-medium text-gray-400">Nama Engineer (Maks. 5)</label>
+                                <label class="block text-sm font-medium text-gray-700">Nama Engineer (Maks. 5)</label>
 
                                 <select @change="addTechnician($event.target.value); $event.target.value = ''"
-                                    class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
+                                    class="w-full rounded-md bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500">
                                     <option value="">Pilih Engineer...</option>
                                     <template x-for="tech in allTechnicians" :key="tech.id">
                                         <option :value="tech.name" x-text="tech.name"></option>
@@ -852,10 +859,10 @@
                                     <template x-for="(tech, index) in editForm.selectedTechnicians"
                                         :key="index">
                                         <span
-                                            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-900 text-blue-200 border border-blue-700">
+                                            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
                                             <span x-text="tech"></span>
                                             <button type="button" @click="removeTechnician(index)"
-                                                class="ml-2 text-blue-300 hover:text-white focus:outline-none">&times;</button>
+                                                class="ml-2 text-blue-500 hover:text-blue-700 focus:outline-none font-bold">&times;</button>
                                         </span>
                                     </template>
                                 </div>
@@ -864,47 +871,38 @@
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Keterangan
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan
                                         Parameter Improvement</label>
                                     <input type="text" x-model="editForm.production_note"
-                                        class="w-full rounded-md bg-gray-800 border-gray-700 text-gray-400 cursor-not-allowed"
+                                        class="w-full rounded-md bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed"
                                         readonly>
                                 </div>
-                                {{-- <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Parameter
-                                        Improvement</label>
-                                    <select name="maintenance_note" x-model="editForm.maintenance_note"
-                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500">
-                                        <option value="">Pilih Keterangan...</option>
-                                        @foreach ($maintenanceStatuses as $ms)
-                                            <option value="{{ $ms->name }}">{{ $ms->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div> --}}
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Uraian
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Uraian
                                         Improvement</label>
                                     <textarea name="repair_solution" x-model="editForm.repair_solution" rows="3"
                                         placeholder="Jelaskan detail improvement..."
-                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500"></textarea>
+                                        class="w-full rounded-md bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500"
+                                        required></textarea>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-400 mb-1">Sparepart</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Sparepart</label>
                                     <textarea name="sparepart" x-model="editForm.sparepart" rows="3"
-                                        class="w-full rounded-md bg-gray-900 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500"></textarea>
+                                        class="w-full rounded-md bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"></textarea>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="bg-gray-800 px-6 py-4 sm:flex sm:flex-row-reverse border-t border-gray-700 gap-3">
+                        {{-- Footer Buttons --}}
+                        <div class="bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse border-t border-gray-200 gap-3">
                             <button type="submit"
                                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">Simpan
                                 Perubahan</button>
                             <button type="button" @click="showEditModal = false"
-                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Batal</button>
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Batal</button>
                         </div>
                     </form>
                 </div>
@@ -916,68 +914,58 @@
             </div>
 
             <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                <div x-show="showExportModal" x-transition:enter="ease-out duration-300"
-                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                    class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-200 dark:border-gray-700">
-
-                    <div class="bg-white dark:bg-gray-800 px-4 py-4 sm:px-6 border-b dark:border-gray-700">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                </path>
-                            </svg>
-                            Export Data Laporan
-                        </h3>
+                <div x-show="showExportModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto">
+                    <div x-show="showExportModal" x-transition.opacity
+                        class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity"
+                        @click="showExportModal = false"></div>
+                    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                        <div x-show="showExportModal"
+                            class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-200 dark:border-gray-700">
+                            <div class="bg-white dark:bg-gray-800 px-4 py-4 sm:px-6 border-b dark:border-gray-700">
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    Export Data Laporan
+                                </h3>
+                            </div>
+                            {{-- Form ini HANYA untuk export tanggal --}}
+                            <form action="{{ route('work-orders.export') }}" method="GET">
+                                <div class="px-6 py-6 space-y-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dari
+                                                Tanggal</label>
+                                            <input type="date" name="start_date" required
+                                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500">
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sampai
+                                                Tanggal</label>
+                                            <input type="date" name="end_date" required
+                                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 sm:flex sm:flex-row-reverse gap-3">
+                                    <button type="submit"
+                                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">Download</button>
+                                    <button type="button" @click="showExportModal = false"
+                                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Batal</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-
-                    <form action="{{ route('work-orders.export') }}" method="GET" onsubmit="handleExport()">
-                        <div class="px-6 py-6 space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dari
-                                        Tanggal</label>
-                                    <input type="date" name="start_date" required
-                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500">
-                                </div>
-                                <div>
-                                    <label
-                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sampai
-                                        Tanggal</label>
-                                    <input type="date" name="end_date" required
-                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500">
-                                </div>
-                            </div>
-                            <div>
-                                <label
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Format</label>
-                                <select name="format"
-                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500">
-                                    <option value="csv">CSV (Excel Compatible)
-                                    </option>
-                                    {{-- Jika menggunakan package maatwebsite/excel, bisa tambahkan option xlsx --}}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 sm:flex sm:flex-row-reverse gap-3">
-                            <button type="submit"
-                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
-                                Download
-                            </button>
-                            <button type="button" @click="showExportModal = false"
-                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                                Batal
-                            </button>
-                        </div>
-                    </form>
                 </div>
+
             </div>
         </div>
     </div>
+    </div>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/airbnb.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </x-app-layout>
+
 <script>
     function handleSubmit() {
         document.getElementById('loading-spinner').style.display = 'block';

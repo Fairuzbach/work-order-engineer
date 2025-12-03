@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class WorkOrderController extends Controller
 {
-    // --- FUNGSI SIMPAN BARU (STORE) ---
+    // --- FUNGSI STORE (Biarkan Tetap Sama) ---
     public function store(Request $request)
     {
         $request->validate([
@@ -62,11 +62,9 @@ class WorkOrderController extends Controller
         return redirect()->route('dashboard')->with('success', 'Laporan berhasil dibuat!');
     }
 
-    // --- FUNGSI UPDATE STATUS (EDIT) ---
-    // Tambahkan fungsi ini di bawah fungsi store
+    // --- FUNGSI UPDATE (Biarkan Tetap Sama) ---
     public function update(Request $request, WorkOrder $workOrder)
     {
-        // 1. Validasi Input Edit
         $request->validate([
             'work_status' => 'required|in:pending,in_progress,completed,cancelled',
             'finished_date' => 'nullable|date',
@@ -78,42 +76,58 @@ class WorkOrderController extends Controller
             'sparepart' => 'nullable|string',
         ]);
 
-        // 2. Update Data ke Database
         $workOrder->update([
             'work_status' => $request->work_status,
             'finished_date' => $request->finished_date,
             'start_time' => $request->start_time,
             'end_time' => $request->end_time,
-            'technician' => $request->technician, // Nama Teknisi
+            'technician' => $request->technician,
             'maintenance_note' => $request->maintenance_note,
-            'repair_solution' => $request->repair_solution, // Uraian Perbaikan
+            'repair_solution' => $request->repair_solution,
             'sparepart' => $request->sparepart,
         ]);
 
-        // 3. Kembali ke Dashboard
         return redirect()->route('dashboard')->with('success', 'Status laporan #' . $workOrder->ticket_num . ' berhasil diperbarui!');
     }
+
+    // --- FUNGSI EXPORT (DIPERBAIKI) ---
     public function export(Request $request)
     {
-        // 1. Validasi Input Tanggal
-        $request->validate([
-            'start_date' => 'required|date',
-            'end_date'   => 'required|date|after_or_equal:start_date',
-        ]);
+        // SKENARIO 1: EXPORT DATA TERPILIH (CHECKBOX)
+        if ($request->filled('ticket_ids')) {
+            // Pecah string "1,2,5" menjadi array [1, 2, 5]
+            $ids = explode(',', $request->ticket_ids);
 
-        $startDate = $request->start_date;
-        $endDate = $request->end_date;
+            // Gunakan whereIn untuk array ID
+            $data = \App\Models\WorkOrder::with('requester')
+                ->whereIn('id', $ids)
+                ->orderBy('report_date', 'asc')
+                ->get();
 
-        // 2. Ambil Data dari Database
-        $data = \App\Models\WorkOrder::with('requester')->whereBetween('report_date', [$startDate, $endDate])
-            ->orderBy('report_date', 'asc')
-            ->orderBy('report_time', 'asc')
-            ->get();
+            $fileName = 'Laporan_engIO_Selected_' . date('Ymd_His') . '.csv';
+        }
+        // SKENARIO 2: EXPORT BERDASARKAN RANGE TANGGAL (ELSE)
+        else {
+            // Validasi HANYA berjalan jika masuk blok else ini
+            // Ini mencegah error validasi saat user pakai checkbox
+            $request->validate([
+                'start_date' => 'required|date',
+                'end_date'   => 'required|date|after_or_equal:start_date',
+            ]);
 
-        // 3. Nama File
-        $fileName = 'Laporan_WO_' . $startDate . '_sd_' . $endDate . '.csv';
+            $startDate = $request->start_date;
+            $endDate = $request->end_date;
 
-        // 4. Header CSV (Sesuaikan dengan kolom yang Anda inginkan)
+            $data = \App\Models\WorkOrder::with('requester')
+                ->whereBetween('report_date', [$startDate, $endDate])
+                ->orderBy('report_date', 'asc')
+                ->orderBy('report_time', 'asc')
+                ->get();
+
+            $fileName = 'Laporan_engIO_' . $startDate . '_sd_' . $endDate . '.csv';
+        }
+
+        // --- CSV WRITER ---
         $headers = array(
             "Content-type"        => "text/csv",
             "Content-Disposition" => "attachment; filename=$fileName",
@@ -122,7 +136,6 @@ class WorkOrderController extends Controller
             "Expires"             => "0"
         );
 
-        // 5. Kolom Judul di dalam file CSV
         $columns = [
             'No Tiket',
             'Tanggal Lapor',
@@ -132,7 +145,7 @@ class WorkOrderController extends Controller
             'Shift',
             'Plant',
             'Mesin',
-            'Request', //
+            'Request',
             'Prioritas',
             'Status',
             'Engineer',
@@ -141,29 +154,28 @@ class WorkOrderController extends Controller
             'Tanggal Selesai'
         ];
 
-        // 6. Callback untuk stream download
         $callback = function () use ($data, $columns) {
             $file = fopen('php://output', 'w');
 
-            // Tulis Judul Kolom
+            // Tulis Header
             fputcsv($file, $columns);
 
-            // Tulis Baris Data
+            // Tulis Data
             foreach ($data as $row) {
                 fputcsv($file, [
-                    $row->ticket_num, //nomor tiket
-                    $row->report_date,
-                    $row->report_time,
+                    $row->ticket_num,
+                    \Carbon\Carbon::parse($row->report_date)->format('Y-m-d'),
+                    \Carbon\Carbon::parse($row->report_time)->format('H:i'),
                     $row->requester_id,
-                    $row->requester->name ?? 'NO NAME, CEK ID PELAPOR', // Asumsi ada relasi atau kolom ini
+                    $row->requester->name ?? 'NO NAME, CEK ID PELAPOR',
                     $row->shift,
                     $row->plant,
                     $row->machine_name,
-                    $row->damaged_part, //REQUEST
+                    $row->damaged_part,
                     $row->priority,
                     $row->work_status,
-                    $row->technician, //ENGINEER
-                    $row->repair_solution, //URAIAN IMPROVEMENT
+                    $row->technician,
+                    $row->repair_solution,
                     $row->sparepart,
                     $row->finished_date
                 ]);
@@ -171,7 +183,6 @@ class WorkOrderController extends Controller
             fclose($file);
         };
 
-        // 7. Return Stream Download
         return response()->stream($callback, 200, $headers);
     }
 }
