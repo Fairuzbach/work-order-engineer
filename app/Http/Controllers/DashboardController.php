@@ -37,6 +37,10 @@ class DashboardController extends Controller
             });
         }
 
+        if ($request->filled('work_status')) {
+            $query->where('work_status', $request->work_status);
+        }
+
         // --- C. EKSEKUSI QUERY ---
         // Jalankan query dengan pagination
         // withQueryString() penting agar parameter search tidak hilang saat ganti halaman

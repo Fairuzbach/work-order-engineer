@@ -32,7 +32,7 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('dashboard');
     });
     // Route Update (PUT)
-    Route::get('/work-orders/export', [WorkOrderController::class, 'export'])->name('work-orders.export')->middleware(['throttle:3,1', 'can:export-data']);
+    Route::get('/work-orders/export', [WorkOrderController::class, 'export'])->name('work-orders.export')->middleware(['throttle:3,1']);
     Route::put('/work-orders/{workOrder}', [WorkOrderController::class, 'update'])->name('work-orders.update')->middleware('can:update, workOrder')->whereNumber('workOrder ');
 });
 
