@@ -68,11 +68,11 @@ class WorkOrderController extends Controller
         $request->validate([
             'work_status' => 'required|in:pending,in_progress,completed,cancelled',
             'finished_date' => 'nullable|date',
-            'start_time' => 'nullable',
+            'start_time' => 'required',
             'end_time' => 'nullable',
             'technician' => 'nullable|string|max:255',
             'maintenance_note' => 'nullable|string',
-            'repair_solution' => 'nullable|string',
+            'repair_solution' => 'required|string',
             'sparepart' => 'nullable|string',
         ]);
 
@@ -93,23 +93,21 @@ class WorkOrderController extends Controller
     // --- FUNGSI EXPORT (DIPERBAIKI) ---
     public function export(Request $request)
     {
-        // SKENARIO 1: EXPORT DATA TERPILIH (CHECKBOX)
+
         if ($request->filled('ticket_ids')) {
-            // Pecah string "1,2,5" menjadi array [1, 2, 5]
+
             $ids = explode(',', $request->ticket_ids);
 
-            // Gunakan whereIn untuk array ID
+
             $data = \App\Models\WorkOrder::with('requester')
                 ->whereIn('id', $ids)
                 ->orderBy('report_date', 'asc')
                 ->get();
 
             $fileName = 'Laporan_engIO_Selected_' . date('Ymd_His') . '.csv';
-        }
-        // SKENARIO 2: EXPORT BERDASARKAN RANGE TANGGAL (ELSE)
-        else {
+        } else {
             // Validasi HANYA berjalan jika masuk blok else ini
-            // Ini mencegah error validasi saat user pakai checkbox
+
             $request->validate([
                 'start_date' => 'required|date',
                 'end_date'   => 'required|date|after_or_equal:start_date',
@@ -177,7 +175,8 @@ class WorkOrderController extends Controller
                     $row->technician,
                     $row->repair_solution,
                     $row->sparepart,
-                    $row->finished_date
+
+                    $row->finished_date ? \Carbon\Carbon::parse($row->finished_date)->format('Y-m-d') : '',
                 ]);
             }
             fclose($file);
