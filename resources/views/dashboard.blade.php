@@ -36,7 +36,6 @@
     
         // ================= FUNCTIONS =================
     
-        // --- CHECKBOX LOGIC ---
         toggleSelectAll() {
             const allSelected = this.pageIds.every(id => this.selectedTickets.includes(id));
             if (allSelected) {
@@ -48,7 +47,6 @@
             }
         },
     
-        // --- EXPORT LOGIC ---
         handleExportClick() {
             if (this.selectedTickets.length > 0) {
                 const ids = this.selectedTickets.join(',');
@@ -62,23 +60,19 @@
             }
         },
     
-        // --- CLOCK & SHIFT ---
         updateTime() {
             const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
             this.currentDate = `${year}-${month}-${day}`;
-    
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             this.currentTime = `${hours}:${minutes}`;
-    
             const totalMinutes = (now.getHours() * 60) + now.getMinutes();
             if (totalMinutes >= 405 && totalMinutes <= 915) { this.currentShift = '1'; } else if (totalMinutes >= 916 && totalMinutes <= 1365) { this.currentShift = '2'; } else { this.currentShift = '3'; }
         },
     
-        // --- FORM LOGIC ---
         onPlantChange() {
             const plantData = this.allPlants.find(p => p.name === this.selectedPlant);
             if (plantData && plantData.machines.length > 0) {
@@ -98,7 +92,7 @@
             if (this.$refs.createForm.reportValidity()) { this.$refs.createForm.submit(); } else { this.showConfirmModal = false; }
         },
     
-        // --- EDIT MODAL LOGIC --- //
+        // --- OPEN EDIT MODAL (CLEAN VERSION) ---
         openEditModal(data) {
             this.ticket = data;
             this.editForm.id = data.id;
@@ -106,8 +100,11 @@
             this.editForm.work_status = data.work_status;
             this.editForm.production_note = data.production_status;
     
-            // Fix Format Tanggal & Jam untuk Edit
+            // Format Tanggal (YYYY-MM-DD)
             this.editForm.finished_date = data.finished_date ? data.finished_date.substring(0, 10) : '';
+    
+            // Format Jam (HH:mm) - Ambil 5 karakter pertama
+            // <input type='time'> HTML5 butuh format HH:mm agar bisa menampilkan nilai
             this.editForm.start_time = data.start_time ? data.start_time.substring(0, 5) : '';
             this.editForm.end_time = data.end_time ? data.end_time.substring(0, 5) : '';
     
@@ -134,32 +131,19 @@
             this.editForm.technician_string = this.editForm.selectedTechnicians.join(', ');
         },
     
-        // --- INITIALIZATION ---
+        // --- INIT (CLEAN VERSION) ---
         init() {
             this.updateTime();
             setInterval(() => { this.updateTime(); }, 1000);
     
-            // 1. Load Checkbox dari Storage
+            // Load Checkbox
             const saved = localStorage.getItem('selected_wo_ids');
             if (saved) this.selectedTickets = JSON.parse(saved);
-    
-            // 2. Save Checkbox ke Storage
             this.$watch('selectedTickets', (value) => {
                 localStorage.setItem('selected_wo_ids', JSON.stringify(value));
             });
     
-            // 3. Init Flatpickr (Jam 24 Jam)
-            setTimeout(() => {
-                flatpickr('.timepicker', {
-                    enableTime: true,
-                    noCalendar: true,
-                    dateFormat: 'H:i',
-                    time_24hr: true,
-                    static: true
-                });
-            }, 1000);
-    
-            // 4. Reset Form Create saat tutup modal
+            // Reset Form Create
             this.$watch('showCreateModal', (value) => {
                 if (!value) {
                     this.selectedPlant = '';
@@ -181,7 +165,7 @@
             <div x-init="showCreateModal = true"></div>
         @endif
 
-        {{-- Opsional: Auto Open Modal Export jika error berasal dari tanggal Export --}}
+        
         @if ($errors->hasAny(['start_date', 'end_date']))
             <div x-init="showExportModal = true"></div>
         @endif
@@ -194,6 +178,34 @@
                     role="alert">
                     <strong class="font-bold">Berhasil!</strong>
                     <span class="block sm:inline">{{ session('success') }}</span>
+                </div>
+            @endif
+            @if ($errors->any())
+                <div x-data="{ show: true }" x-show="show" x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 transform translate-x-8"
+                    x-transition:enter-end="opacity-100 transform translate-x-0" x-init="setTimeout(() => show = false, 5000)"
+                    class="fixed top-24 right-5 z-[100] bg-red-500 text-white px-6 py-4 rounded-lg shadow-xl flex items-center gap-3 border-l-4 border-red-700">
+
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+
+                    <div>
+                        <h4 class="font-bold text-lg">Gagal Menyimpan!</h4>
+                        <ul class="text-sm list-disc pl-4 mt-1">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+
+                    <button @click="show = false" class="ml-4 text-white hover:text-red-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
             @endif
 
@@ -469,7 +481,7 @@
                                 <div><label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Jam
                                         Lapor (WIB)</label>
-                                    <input type="time" name="report_time" x-model="currentTime" readonly
+                                    <input type="text" name="report_time" x-model="currentTime" readonly
                                         class="w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 shadow-sm cursor-not-allowed font-bold">
                                 </div>
                             </div>
@@ -802,7 +814,7 @@
                             x-text="'Update Status Laporan #' + (ticket ? ticket.ticket_num : '')"></h3>
                     </div>
 
-                    <form :action="'/work-orders/' + editForm.id" method="POST">
+                    <form x-ref="editFormHtml" :action="'/work-orders/' + editForm.id" method="POST">
                         @csrf
                         @method('PUT')
 
@@ -828,18 +840,52 @@
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {{-- WAKTU MULAI --}}
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Waktu Mulai
-                                        Improvement</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Waktu Mulai Improvement <span class="text-red-500">*</span>
+                                    </label>
                                     <input type="text" name="start_time" x-model="editForm.start_time"
-                                        class="timepicker w-full rounded-md bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
-                                        required>
+                                        {{-- PENTING: ID UNTUK JS --}}
+                                        class="w-full rounded-md bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+                                        placeholder="00:00" required x-init="flatpickr($el, {
+                                            enableTime: true,
+                                            noCalendar: true,
+                                            dateFormat: 'H:i',
+                                            time_24hr: true,
+                                            static: true,
+                                            defaultDate: editForm.start_time,
+                                            onChange: (selectedDates, dateStr) => {
+                                                editForm.start_time = dateStr; // Paksa update data Alpine
+                                            }
+                                        });
+                                        // Update tampilan jika data editForm berubah dari luar (saat tombol Edit diklik)
+                                        $watch('editForm.start_time', (value) => {
+                                            if (value) $el._flatpickr.setDate(value);
+                                        });">
                                 </div>
+
+                                {{-- WAKTU SELESAI --}}
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Waktu Selesai
                                         Improvement</label>
                                     <input type="text" name="end_time" x-model="editForm.end_time"
-                                        class="timepicker w-full rounded-md bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500">
+                                        {{-- PENTING: ID UNTUK JS --}}
+                                        class="w-full rounded-md bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+                                        placeholder="00:00"x-init="flatpickr($el, {
+                                            enableTime: true,
+                                            noCalendar: true,
+                                            dateFormat: 'H:i',
+                                            time_24hr: true,
+                                            static: true,
+                                            defaultDate: editForm.end_time,
+                                            onChange: (selectedDates, dateStr) => {
+                                                editForm.end_time = dateStr; // Paksa update data Alpine
+                                            }
+                                        });
+                                        $watch('editForm.end_time', (value) => {
+                                            if (value) $el._flatpickr.setDate(value);
+                                        });">
                                 </div>
                             </div>
 
@@ -882,7 +928,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Uraian
-                                        Improvement</label>
+                                        Improvement <span class="text-red-500">*</span> </label>
                                     <textarea name="repair_solution" x-model="editForm.repair_solution" rows="3"
                                         placeholder="Jelaskan detail improvement..."
                                         class="w-full rounded-md bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500"
@@ -898,9 +944,11 @@
 
                         {{-- Footer Buttons --}}
                         <div class="bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse border-t border-gray-200 gap-3">
-                            <button type="submit"
-                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">Simpan
-                                Perubahan</button>
+                            <button type="button"
+                                @click="$refs.editFormHtml.reportValidity() ? $refs.editFormHtml.submit() : null"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                                Simpan Perubahan
+                            </button>
                             <button type="button" @click="showEditModal = false"
                                 class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Batal</button>
                         </div>
@@ -959,10 +1007,9 @@
 
             </div>
         </div>
-    </div>
+        </>
     </div>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/airbnb.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </x-app-layout>
 

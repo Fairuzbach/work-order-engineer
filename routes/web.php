@@ -33,7 +33,7 @@ Route::middleware('auth')->group(function () {
     });
     // Route Update (PUT)
     Route::get('/work-orders/export', [WorkOrderController::class, 'export'])->name('work-orders.export')->middleware(['throttle:3,1']);
-    Route::put('/work-orders/{workOrder}', [WorkOrderController::class, 'update'])->name('work-orders.update')->middleware('can:update, workOrder')->whereNumber('workOrder ');
+    Route::put('/work-orders/{workOrder}', [WorkOrderController::class, 'update'])->name('work-orders.update')->whereNumber('workOrder ');
 });
 
 require __DIR__ . '/auth.php';

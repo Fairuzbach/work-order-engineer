@@ -9,7 +9,7 @@ class Plant extends Model
 {
     use HasFactory;
 
-    // Izinkan mass assignment untuk kolom 'name'
+
     protected $fillable = ['name'];
 
     /**
