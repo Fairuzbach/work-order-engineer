@@ -47,6 +47,12 @@ class DashboardController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $liveReports = WorkOrder::with('requester')->where('created_at')->latest()->get();
+        $stats = [
+            'total' => WorkOrder::count(),
+            'pending' => WorkOrder::whereIn('work_status', ['pending', 'in_progress'])->count(),
+            'completed' => WorkOrder::where('work_status', 'completed')->count()
+        ];
         // --- D. KIRIM SEMUA DATA KE VIEW ---
 
         return view('dashboard', compact(
@@ -54,7 +60,9 @@ class DashboardController extends Controller
             'plants',
             'technicians',
             'productionStatuses',
-            'maintenanceStatuses'
+            'maintenanceStatuses',
+            'liveReports',
+            'stats'
         ));
     }
 }

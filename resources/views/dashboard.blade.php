@@ -165,7 +165,7 @@
             <div x-init="showCreateModal = true"></div>
         @endif
 
-        
+
         @if ($errors->hasAny(['start_date', 'end_date']))
             <div x-init="showExportModal = true"></div>
         @endif
@@ -759,7 +759,7 @@
                                             x-text="ticket.production_status"></p>
                                     </div>
                                     <div><span
-                                            class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Teknisi</span>
+                                            class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Engineer</span>
                                         <p class="text-sm font-medium text-gray-900 dark:text-white"
                                             x-text="ticket.technician ?? '-'"></p>
                                     </div>

@@ -8,8 +8,7 @@ use App\Http\Controllers\WorkOrderController;
 use App\Models\Plant;
 
 Route::get('/', function () {
-
-    $workOrders = WorkOrder::with('requester')->latest()->paginate(10);
+    $liveReports = WorkOrder::with('requester')->where('created_at', '>=', now()->subDay())->latest()->get();
 
     $stats = [
         'total' => WorkOrder::count(),
@@ -18,7 +17,8 @@ Route::get('/', function () {
         'completed' => WorkOrder::where('work_status', 'completed')->count(),
         'cancelled' => WorkOrder::where('work_status', 'cancelled')->count()
     ];
-    return view('welcome', compact('workOrders', 'stats'));
+    $workOrders = WorkOrder::with('requester')->latest()->paginate(5);
+    return view('welcome', compact('liveReports', 'workOrders', 'stats'));
 });
 
 
