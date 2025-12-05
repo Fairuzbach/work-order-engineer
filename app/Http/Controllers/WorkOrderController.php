@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class WorkOrderController extends Controller
 {
-    // --- FUNGSI STORE (Biarkan Tetap Sama) ---
+    // --- FUNGSI STORE (DIPERBAIKI) ---
     public function store(Request $request)
     {
         $request->validate([
@@ -18,7 +18,10 @@ class WorkOrderController extends Controller
             'plant' => 'required|string',
             'machine_name' => 'required|string',
             'damaged_part' => 'required|string',
-            'production_status' => 'required|string',
+
+            // PERBAIKAN: Ubah maintenance_statuses menjadi improvement_status sesuai nama di View
+            'improvement_status' => 'required|string',
+
             'kerusakan_detail' => 'required|string',
             'priority' => 'nullable',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
@@ -51,7 +54,11 @@ class WorkOrderController extends Controller
             'plant' => $request->plant,
             'machine_name' => $request->machine_name,
             'damaged_part' => $request->damaged_part,
-            'production_status' => $request->production_status,
+
+            // PERBAIKAN: Mapping ke database (pastikan nama kolom di DB sesuai, misal: maintenance_statuses atau improvement_status)
+            // Jika kolom di DB masih 'maintenance_statuses', gunakan kode ini:
+            'maintenance_statuses' => $request->improvement_status,
+
             'kerusakan' => $request->damaged_part,
             'kerusakan_detail' => $request->kerusakan_detail,
             'priority' => $request->priority ?? 'medium',
@@ -90,7 +97,7 @@ class WorkOrderController extends Controller
         return redirect()->route('dashboard')->with('success', 'Status laporan #' . $workOrder->ticket_num . ' berhasil diperbarui!');
     }
 
-    // --- FUNGSI EXPORT (DIPERBAIKI) ---
+    // --- FUNGSI EXPORT (Biarkan Tetap Sama) ---
     public function export(Request $request)
     {
 

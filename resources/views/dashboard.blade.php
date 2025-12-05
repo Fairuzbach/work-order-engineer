@@ -412,10 +412,10 @@
                                             <button
                                                 @click="ticket = {{ $wo->toJson() }}; ticket.requester_name = '{{ $wo->requester->name ?? '-' }}'; showDetailModal = true"
                                                 class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3">Detail</button>
-                                            @if (auth()->user()->role === 'admin')
-                                                <button @click="openEditModal({{ $wo->toJson() }})"
-                                                    class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-bold">Edit</button>
-                                            @endif
+
+                                            <button @click="openEditModal({{ $wo->toJson() }})"
+                                                class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-bold">Edit</button>
+
                                         </td>
                                     </tr>
                                 @empty
@@ -550,7 +550,7 @@
                                     <label
                                         class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Parameter
                                         Improvement</label>
-                                    <select name="production_status" x-model="form.production_status"
+                                    <select name="improvement_status" x-model="form.improvement_status"
                                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500"
                                         required>
                                         <option value="">Pilih Keterangan...</option>
@@ -647,7 +647,7 @@
                                             x-text="form.machine_name"></span>
                                         <span class="font-semibold">Bagian Rusak:</span> <span
                                             x-text="form.damaged_part"></span>
-                                        <span class="font-semibold">Status Prod:</span> <span
+                                        <span class="font-semibold">Parameter Improvement:</span> <span
                                             x-text="form.production_status"></span>
                                         <span class="font-semibold">Prioritas:</span> <span
                                             x-text="form.priority.toUpperCase()"></span>
@@ -753,8 +753,8 @@
                                         <p class="text-sm font-medium text-gray-900 dark:text-white"
                                             x-text="ticket.damaged_part"></p>
                                     </div>
-                                    <div><span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Status
-                                            Produksi</span>
+                                    <div><span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Parameter
+                                            Improvement</span>
                                         <p class="text-sm font-medium text-gray-900 dark:text-white"
                                             x-text="ticket.production_status"></p>
                                     </div>
@@ -1007,6 +1007,7 @@
 
             </div>
         </div>
+
         </>
     </div>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">

@@ -15,11 +15,13 @@
     <style>
         @keyframes scroll {
             0% {
-                transform: translateX(0);
+                /* Mulai dari luar sisi kanan (100% dari lebar elemen/parent) */
+                transform: translateX(100%);
             }
 
             100% {
-                transform: translateX(-50%);
+                /* Berakhir di luar sisi kiri */
+                transform: translateX(-100%);
             }
         }
 
@@ -27,6 +29,7 @@
             display: flex;
             /* Wajib flex agar menyamping */
             animation: scroll 20s linear infinite;
+            /* Durasi diperlambat (15s) agar teks terbaca */
             width: max-content;
             /* Agar lebar mengikuti konten */
         }
